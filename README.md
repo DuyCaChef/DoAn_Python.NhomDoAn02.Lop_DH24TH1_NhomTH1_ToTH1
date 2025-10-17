@@ -56,12 +56,10 @@ cd QL_NhanSu_Python
 ```
 
 Tạo môi trường ảo và cài thư viện:
+```bash
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
-
-```
-
 
 ```
 
