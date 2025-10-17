@@ -63,30 +63,30 @@ pip install -r requirements.txt
 
 ```
 
-Cấu trúc thư mục dự án:
+## 🧱 Cấu trúc thư mục dự án
+
 QL_NhanSu_Python/
 │
-├── main.py                        # Điểm khởi chạy chính của ứng dụng
+├── main.py # Điểm khởi chạy chính của ứng dụng
 │
 ├── database/
-│   ├── db_config.py               # Cấu hình kết nối MySQL
-│   ├── db_init.py                 # Tự tạo CSDL + bảng khi chạy lần đầu
-│   └── queries.py                 # Các hàm CRUD (thêm, xóa, sửa, tìm kiếm)
+│ ├── db_config.py # Cấu hình kết nối MySQL
+│ ├── db_init.py # Tự tạo CSDL + bảng khi chạy lần đầu
+│ └── queries.py # Các hàm CRUD (thêm, xóa, sửa, tìm kiếm)
 │
 ├── gui/
-│   ├── main_window.py             # Giao diện chính Tkinter
-│   ├── form_employee.py           # Form thêm/sửa nhân viên
-│   └── components/                # (Tùy chọn) các widget phụ
+│ ├── main_window.py # Giao diện chính Tkinter
+│ ├── form_employee.py # Form thêm/sửa nhân viên
+│ └── components/ # (Tùy chọn) các widget phụ
 │
 ├── models/
-│   └── employee.py                # Mô hình dữ liệu nhân viên
+│ └── employee.py # Mô hình dữ liệu nhân viên
 │
 ├── utils/
-│   ├── validators.py              # Kiểm tra dữ liệu nhập vào
-│   └── helpers.py                 # Các hàm hỗ trợ khác
+│ ├── validators.py # Kiểm tra dữ liệu nhập vào
+│ └── helpers.py # Các hàm hỗ trợ khác
 │
-├── assets/                        # Icon, hình ảnh, file style
+├── assets/ # Icon, hình ảnh, file style
 ├── requirements.txt
 ├── README.md
 └── .gitignore
-
