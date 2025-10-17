@@ -64,7 +64,7 @@ pip install -r requirements.txt
 ```
 
 ## 🧱 Cấu trúc thư mục dự án
-
+```bash
 QL_NhanSu_Python/
 │
 ├── main.py # Điểm khởi chạy chính của ứng dụng
@@ -90,3 +90,4 @@ QL_NhanSu_Python/
 ├── requirements.txt
 ├── README.md
 └── .gitignore
+```
