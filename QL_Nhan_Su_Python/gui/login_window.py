@@ -67,6 +67,9 @@ class LoginWindow(ctk.CTk):
         self.usernameEntry.focus_set()
         self.bind('<Return>', self._on_login)
 
+        # Hiển thị giữa màn hình
+        self._center_window()
+
 
     def _on_login(self, event=None):
         username = self.usernameEntry.get().strip()
@@ -97,6 +100,28 @@ class LoginWindow(ctk.CTk):
         messagebox.showerror('Lỗi đăng nhập', 'Tên đăng nhập hoặc mật khẩu không đúng!')
         self.passwordEntry.delete(0, tk.END)
         self.passwordEntry.focus_set()
+
+    def _center_window(self) -> None:
+        """Center this window on the primary screen without changing its size."""
+        self.update_idletasks()
+        
+        # Lấy kích thước đã thiết lập từ geometry ban đầu
+        try:
+            geom = self.geometry().split('+')[0]
+            w_str, h_str = geom.split('x')
+            w, h = int(w_str), int(h_str)
+        except Exception:
+            # Fallback nếu không parse được
+            w, h = 930, 478
+
+        # Tính toán vị trí giữa màn hình
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
+        x = (sw - w) // 2
+        y = (sh - h) // 2
+        
+        # Chỉ thay đổi vị trí, giữ nguyên kích thước
+        self.geometry(f"+{x}+{y}")
 
 if __name__ == '__main__':
     win = LoginWindow()

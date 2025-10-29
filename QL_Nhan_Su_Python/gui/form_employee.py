@@ -24,6 +24,9 @@ class App(ctk.CTk):
         self.create_left_panel()
         self.create_right_panel()
 
+        # Hiển thị giữa màn hình
+        self._center_window()
+
     def create_header(self):
         """Tạo khung header màu tím ở trên cùng"""
         # Lưu ý: CustomTkinter không hỗ trợ gradient.
@@ -245,6 +248,31 @@ class App(ctk.CTk):
             )
             delete_button.pack(side="left", padx=5)
 
+    def _center_window(self) -> None:
+        """Center this window on the primary screen without changing its size."""
+        self.update_idletasks()
+        
+        # Lấy kích thước đã thiết lập từ geometry ban đầu
+        try:
+            geom = self.geometry().split('+')[0]
+            w_str, h_str = geom.split('x')
+            w, h = int(w_str), int(h_str)
+        except Exception:
+            # Fallback nếu không parse được
+            w, h = 1200, 650
+
+        # Tính toán vị trí giữa màn hình
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
+        x = (sw - w) // 2
+        y = (sh - h) // 2
+        
+        # Chỉ thay đổi vị trí, giữ nguyên kích thước
+        self.geometry(f"+{x}+{y}")
+
+
 if __name__ == "__main__":
     app = App()
     app.mainloop()
+
+
