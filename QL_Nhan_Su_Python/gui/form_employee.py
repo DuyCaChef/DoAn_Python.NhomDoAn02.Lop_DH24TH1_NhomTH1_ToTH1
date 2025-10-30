@@ -6,7 +6,7 @@ class App(ctk.CTk):
 
         # --- Cấu hình cửa sổ chính ---
         self.title("Employee Management System")
-        self.geometry('1200x650')  # Đặt kích thước cửa sổ
+        self.geometry("1280x720")  # Đặt kích thước cửa sổ
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
 
@@ -40,13 +40,15 @@ class App(ctk.CTk):
             text="Employee Management System", 
             font=ctk.CTkFont(size=24, weight="bold")
         )
-        title_label.pack(padx=20, pady=(15, 2), anchor="w")
+        # Thay đổi: Bỏ side="left" để xếp dọc, điều chỉnh pady
+        title_label.pack(padx=20, pady=(15, 2), anchor="w") 
 
         subtitle_label = ctk.CTkLabel(
             header_frame, 
             text="Manage your team efficiently", 
             font=ctk.CTkFont(size=14)
         )
+        # Thay đổi: Bỏ side="left", căn padx=20 để thẳng hàng với tiêu đề
         subtitle_label.pack(padx=20, pady=(0, 15), anchor="w")
 
     def create_left_panel(self):
@@ -66,58 +68,70 @@ class App(ctk.CTk):
         # Id
         id_label = ctk.CTkLabel(left_panel, text="Id", anchor="w")
         id_label.pack(fill="x", padx=20, pady=(0, 5))
-        id_entry = ctk.CTkEntry(
+        self.id_entry = ctk.CTkEntry(
             left_panel, 
             placeholder_text="Enter id", 
         )
-        id_entry.pack(fill="x", padx=20, pady=(0, 15))
+        self.id_entry.pack(fill="x", padx=20, pady=(0, 15))
 
         # Name
         name_label = ctk.CTkLabel(left_panel, text="Name", anchor="w")
         name_label.pack(fill="x", padx=20, pady=(0, 5))
-        name_entry = ctk.CTkEntry(
+        self.name_entry = ctk.CTkEntry(
             left_panel, 
             placeholder_text="Enter name"
         )
-        name_entry.pack(fill="x", padx=20, pady=(0, 15))
+        self.name_entry.pack(fill="x", padx=20, pady=(0, 15))
 
         # Phone
         phone_label = ctk.CTkLabel(left_panel, text="Phone", anchor="w")
         phone_label.pack(fill="x", padx=20, pady=(0, 5))
-        phone_entry = ctk.CTkEntry(
+        self.phone_entry = ctk.CTkEntry(
             left_panel, 
             placeholder_text="Enter phone"
         )
-        phone_entry.pack(fill="x", padx=20, pady=(0, 15))
+        self.phone_entry.pack(fill="x", padx=20, pady=(0, 15))
 
         # Role
         role_label = ctk.CTkLabel(left_panel, text="Role", anchor="w")
         role_label.pack(fill="x", padx=20, pady=(0, 5))
-        role_combo = ctk.CTkComboBox(
+        self.role_combo = ctk.CTkComboBox(
             left_panel, 
             values=["Web Developer", "UX/UI Designer", "Cloud Architect", "Network Engineer", "Data Scientist"]
         )
-        role_combo.set("Web Developer")
-        role_combo.pack(fill="x", padx=20, pady=(0, 15))
+        self.role_combo.set("Web Developer")
+        self.role_combo.pack(fill="x", padx=20, pady=(0, 15))
 
         # Gender
         gender_label = ctk.CTkLabel(left_panel, text="Gender", anchor="w")
         gender_label.pack(fill="x", padx=20, pady=(0, 5))
-        gender_combo = ctk.CTkComboBox(
+        self.gender_combo = ctk.CTkComboBox(
             left_panel, 
             values=["Male", "Female", "Other"]
         )
-        gender_combo.set("Male")
-        gender_combo.pack(fill="x", padx=20, pady=(0, 15))
+        self.gender_combo.set("Male")
+        self.gender_combo.pack(fill="x", padx=20, pady=(0, 15))
 
         # Salary
         salary_label = ctk.CTkLabel(left_panel, text="Salary", anchor="w")
         salary_label.pack(fill="x", padx=20, pady=(0, 5))
-        salary_entry = ctk.CTkEntry(
+        self.salary_entry = ctk.CTkEntry(
             left_panel, 
             placeholder_text="Enter salary"
         )
-        salary_entry.pack(fill="x", padx=20, pady=(0, 15))
+        self.salary_entry.pack(fill="x", padx=20, pady=(0, 15))
+
+        # --- NÚT ADD MỚI ---
+        add_button = ctk.CTkButton(
+            left_panel,
+            text="Add Employee",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color="#28A745",  # Màu xanh lá cây
+            hover_color="#218838", # Màu xanh lá đậm hơn
+            command=self.add_employee_logic # Liên kết với hàm xử lý
+        )
+        add_button.pack(fill="x", padx=20, pady=20)
+
 
     def create_right_panel(self):
         """Tạo khung hiển thị dữ liệu bên phải"""
@@ -248,6 +262,20 @@ class App(ctk.CTk):
             )
             delete_button.pack(side="left", padx=5)
 
+    def add_employee_logic(self):
+        """Xử lý logic khi nhấn nút Add Employee"""
+        print("Nút Add Employee đã được nhấn!")
+        # Lấy dữ liệu từ các ô nhập liệu:
+        emp_id = self.id_entry.get()
+        name = self.name_entry.get()
+        phone = self.phone_entry.get()
+        role = self.role_combo.get()
+        gender = self.gender_combo.get()
+        salary = self.salary_entry.get()
+
+        print(f"ID: {emp_id}, Tên: {name}, Phone: {phone}, Role: {role}, Gender: {gender}, Salary: {salary}")
+        # (Đây là nơi bạn sẽ thêm logic để lưu vào database và cập nhật bảng)
+
     def _center_window(self) -> None:
         """Center this window on the primary screen without changing its size."""
         self.update_idletasks()
@@ -274,5 +302,3 @@ class App(ctk.CTk):
 if __name__ == "__main__":
     app = App()
     app.mainloop()
-
-
