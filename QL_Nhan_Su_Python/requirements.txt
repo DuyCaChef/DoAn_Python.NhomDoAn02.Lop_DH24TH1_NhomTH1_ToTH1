@@ -3,6 +3,9 @@
 # Kết nối Python với MySQL
 mysql-connector-python==9.1.0
 
+# Đọc file .env để cấu hình database
+python-dotenv==1.1.1
+
 # Lịch chọn ngày sinh trong Tkinter
 tkcalendar==1.6.1
 

@@ -60,9 +60,17 @@ Tạo môi trường ảo và cài thư viện:
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
-
 ```
-
+linux:
+```bash
+python3 -m venv venv
+#Quan trọng 
+source venv/bin/activate
+```
+Chạy dự án:
+```bash
+python3 main.py
+```
 ## 🧱 Cấu trúc thư mục dự án
 ```bash
 QL_NhanSu_Python/
