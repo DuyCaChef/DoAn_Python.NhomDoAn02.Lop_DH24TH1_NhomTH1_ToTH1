@@ -56,41 +56,38 @@ cd QL_NhanSu_Python
 ```
 
 Tạo môi trường ảo và cài thư viện:
+```bash
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
 
 ```
 
-
-```
-
-Cấu trúc thư mục dự án:
+## 🧱 Cấu trúc thư mục dự án
+```bash
 QL_NhanSu_Python/
 │
-├── main.py # Điểm khởi đầu ứng dụng (chạy Tkinter)
+├── main.py # Điểm khởi chạy chính của ứng dụng
 │
 ├── database/
 │ ├── db_config.py # Cấu hình kết nối MySQL
 │ ├── db_init.py # Tự tạo CSDL + bảng khi chạy lần đầu
-│ └── queries.py # Các hàm truy vấn (thêm, xóa, sửa, tìm kiếm)
+│ └── queries.py # Các hàm CRUD (thêm, xóa, sửa, tìm kiếm)
 │
 ├── gui/
-│ ├── main_window.py # Giao diện chính (Tkinter + Treeview)
-│ ├── form_employee.py # Form nhập/sửa nhân viên
-│ └── components/ # (Tùy chọn) các widget, popup phụ
+│ ├── main_window.py # Giao diện chính Tkinter
+│ ├── form_employee.py # Form thêm/sửa nhân viên
+│ └── components/ # (Tùy chọn) các widget phụ
 │
 ├── models/
-│ └── employee.py # Lớp mô tả đối tượng nhân viên
-│
-├── assets/
-│ ├── icons/ # Ảnh icon nút bấm, logo
-│ └── styles/ # file theme, CSS-like style (nếu có)
+│ └── employee.py # Mô hình dữ liệu nhân viên
 │
 ├── utils/
-│ ├── validators.py # Hàm kiểm tra dữ liệu nhập vào (mã số, ngày sinh,…)
-│ └── helpers.py # Các hàm tiện ích chung
+│ ├── validators.py # Kiểm tra dữ liệu nhập vào
+│ └── helpers.py # Các hàm hỗ trợ khác
 │
-├── requirements.txt # Danh sách thư viện cần cài
-├── README.md # Mô tả dự án (dùng trên GitHub)
-└── .gitignore # Loại bỏ file rác khi commit
+├── assets/ # Icon, hình ảnh, file style
+├── requirements.txt
+├── README.md
+└── .gitignore
+```
