@@ -1,91 +1,112 @@
-"""Simple controller wrapper for employee operations."""
-
-from typing import List
-
-try:
-    from app.database import queries as db_queries
-    from app.models import employee as employee_model
-except Exception:
-    # Fallback: try package-root imports (when running as `QL_Nhan_Su_Python` package)
-    try:
-        from QL_Nhan_Su_Python.database import queries as db_queries  # type: ignore
-        from QL_Nhan_Su_Python.models import employee as employee_model  # type: ignore
-    except Exception:
-        db_queries = None
-        employee_model = None
-
+# SỬA: Import code DB của BẠN (không phải code wrapper)
+from app.database import employee_queries as db 
+from typing import List, Dict, Tuple, Any
 
 class EmployeeController:
-    """Controller class for handling employee operations."""
+    """
+    Kết nối View (Giao diện) với Model (Database).
+    View gọi các hàm ở đây.
+    """
     
     def __init__(self):
-        """Initialize employee controller."""
-        pass
-    
-    def get_all_employees(self) -> List:
-        """Get all employees from database."""
-        return list_employees()
-    
-    def create_employee(self, employee_data: dict):
-        """Create a new employee."""
-        if db_queries is None:
-            print("Warning: Database queries module not available")
-            return None
-        try:
-            return db_queries.create_employee(**employee_data)
-        except Exception as e:
-            print(f"Error creating employee: {e}")
-            return None
-    
-    def update_employee(self, employee_id: int, employee_data: dict):
-        """Update employee information."""
-        if db_queries is None:
-            print("Warning: Database queries module not available")
-            return None
-        try:
-            return db_queries.update_employee(employee_id, **employee_data)
-        except Exception as e:
-            print(f"Error updating employee: {e}")
-            return None
-    
-    def delete_employee(self, employee_id: int):
-        """Delete an employee."""
-        if db_queries is None:
-            print("Warning: Database queries module not available")
-            return None
-        try:
-            return db_queries.delete_employee(employee_id)
-        except Exception as e:
-            print(f"Error deleting employee: {e}")
-            return None
+        # Các cột mà Treeview của bạn bạn mong đợi
+        self.view_columns = ('ID', 'Code', 'Full Name', 'Email', 'Phone', 'Gender', 'Address')
 
-
-def list_employees() -> List:
-    """Return list of employees from database queries."""
-    if db_queries is None or employee_model is None:
-        return []
-    rows = db_queries.get_all_employees()
-    # try to use model factory if available
-    result = []
-    for r in rows:
-        if hasattr(employee_model.Employee, 'from_db_row'):
-            result.append(employee_model.Employee.from_db_row(r))
-        else:
-            # fallback: build with minimal mapping
-            result.append(employee_model.Employee(
-                id=r.get('id'),
-                employee_code=r.get('employee_code'),
-                first_name=r.get('first_name') or r.get('name', ''),
-                last_name=r.get('last_name') or '',
-                gender=r.get('gender', ''),
-                date_of_birth=r.get('date_of_birth'),
-                email=r.get('email'),
-                phone_number=r.get('phone_number'),
-                address=r.get('address'),
-                hire_date=r.get('hire_date'),
-                status=r.get('status', ''),
-                department_name=r.get('department_name'),
-                position_title=r.get('position_title'),
-                manager_id=r.get('manager_id'),
+    def _format_data_for_view(self, employees_raw: List[Dict[str, Any]]) -> List[Tuple]:
+        """
+        Hàm nội bộ: Chuyển đổi dữ liệu thô từ DB (List[Dict]) 
+        thành dữ liệu cho View (List[Tuple])
+        """
+        formatted_list = []
+        for emp in employees_raw:
+            full_name = f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip()
+            formatted_list.append((
+                emp.get('id', ''),
+                emp.get('employee_code', ''),
+                full_name,
+                emp.get('email', ''),
+                emp.get('phone_number', ''),
+                emp.get('gender', ''),
+                emp.get('address', '')
             ))
-    return result
+        return formatted_list
+
+    # --- Các hàm được gọi bởi View ---
+
+    def get_all_employees_for_view(self) -> List[Tuple]:
+        """
+        View gọi hàm này để lấy TẤT CẢ nhân viên
+        đã được định dạng cho bảng.
+        """
+        try:
+            employees_raw = db.get_all_employees() # 1. Gọi DB của bạn
+            return self._format_data_for_view(employees_raw) # 2. Định dạng
+        except Exception as e:
+            raise Exception(f"Không thể tải danh sách nhân viên: {e}")
+
+    def add_employee(self, data: Dict[str, Any]) -> str:
+        """
+        View gọi hàm này để THÊM nhân viên.
+        'data' là dữ liệu thô từ các ô Entry.
+        """
+        try:
+            # --- Đây là Logic Nghiệp vụ (Business Logic) ---
+            if not data['employee_code'] or not data['first_name']:
+                raise ValueError("Mã nhân viên và Tên là bắt buộc.")
+            
+            # Tách tên (vì form của bạn bạn chỉ có 1 trường 'Name')
+            name_parts = data['first_name'].split(maxsplit=1)
+            data['first_name'] = name_parts[0]
+            data['last_name'] = name_parts[1] if len(name_parts) > 1 else ""
+
+            # 3. Gọi Database
+            db.add_employee(data) # Truyền dictionary đã xử lý
+            return "Thêm nhân viên thành công!"
+            
+        except Exception as e:
+            # Hiển thị lỗi thân thiện hơn
+            raise Exception(f"Lỗi khi thêm: {e}")
+
+    def update_employee(self, employee_code: str, data: Dict[str, Any]) -> str:
+        """
+        View gọi hàm này để CẬP NHẬT nhân viên.
+        """
+        try:
+            if not employee_code:
+                raise ValueError("Không có mã nhân viên để cập nhật.")
+            
+            # Tách tên giống như lúc Add
+            name_parts = data['first_name'].split(maxsplit=1)
+            data['first_name'] = name_parts[0]
+            data['last_name'] = name_parts[1] if len(name_parts) > 1 else ""
+            
+            # Gọi hàm DB của bạn (giả sử tên là update_employee)
+            db.update_employee(employee_code, data)
+            return "Cập nhật thành công!"
+        except Exception as e:
+            raise Exception(f"Lỗi khi cập nhật: {e}")
+
+    def delete_employee(self, employee_code: str) -> str:
+        """
+        View gọi hàm này để XÓA nhân viên.
+        """
+        try:
+            if not employee_code:
+                raise ValueError("Không có mã nhân viên để xóa.")
+                
+            db.delete_employee(employee_code) # Gọi hàm DB của bạn
+            return "Xóa thành công!"
+        except Exception as e:
+            raise Exception(f"Lỗi khi xóa: {e}")
+
+    def search_employees(self, search_by: str, search_text: str) -> List[Tuple]:
+        """
+        View gọi hàm này để TÌM KIẾM.
+        """
+        try:
+            # Gọi hàm DB của bạn
+            employees_raw = db.search_employees(search_by, search_text) 
+            # Định dạng lại kết quả tìm kiếm cho View
+            return self._format_data_for_view(employees_raw)
+        except Exception as e:
+            raise Exception(f"Lỗi khi tìm kiếm: {e}")

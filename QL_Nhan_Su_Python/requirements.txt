@@ -10,8 +10,11 @@ python-dotenv==1.1.1
 tkcalendar==1.6.1
 
 # Hỗ trợ xử lý và hiển thị hình ảnh (icon, avatar)
-Pillow==11.0.0
+Pillow
 
 # Tùy chọn: giúp xuất dữ liệu hoặc báo cáo (nếu mở rộng tính năng)
 openpyxl==3.1.5
 reportlab==4.2.2
+mysql-connector-python
+python-dotenv
+customtkinter

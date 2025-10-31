@@ -1,447 +1,416 @@
+import customtkinter as ctk
+from tkinter import messagebox
 import tkinter as tk
 from tkinter import ttk
-from tkinter import messagebox
-# Giả sử controller của bạn ở đây, nếu không, hãy import đúng đường dẫn
-# from app.controllers.employee_controller import EmployeeController 
+# SỬA: Không import database ở đây
 
-class MainWindow(tk.Tk):
-    def __init__(self, controller): # Nhận controller từ bên ngoài
-        super().__init__()
-        self.controller = controller
+# SỬA: Đổi tên class thành 'MainWindow' và kế thừa từ ctk.CTk
+class MainWindow(ctk.CTk):
+    
+    # SỬA: Hàm __init__ nhận 'controller'
+    def __init__(self, controller): 
+        super().__init__() # Khởi tạo ctk.CTk
+        self.controller = controller # LƯU LẠI "BỘ NÃO"
 
-        self.title("Hệ thống Quản lý Nhân sự (Employee Management System)")
-        self.geometry("1200x700+50+50") # Kích thước cửa sổ
-        
-        # --- Cấu hình Style để trông hiện đại ---
-        self._setup_styles()
-        
+        # --- CẬP NHẬT UI/UX HIỆN ĐẠI ---
+        self.title("Employee Management System")
+        self.geometry("1280x800")  # Đặt kích thước cửa sổ
+        ctk.set_appearance_mode("dark")
+        ctk.set_default_color_theme("blue")
+
+        # --- Cấu hình grid layout cho cửa sổ chính ---
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+
         # --- Tạo các thành phần giao diện ---
-        self._create_widgets()
-        
-        # Tải dữ liệu nhân viên từ database ngay khi khởi động
-        self.load_all_employees()
+        self.create_header()
+        self.create_left_panel()
+        self.create_right_panel()
 
-    def _setup_styles(self):
-        """Thiết lập Tùy chỉnh Giao diện (Theme) cho ứng dụng."""
-        self.configure(bg="#2E2E2E") # Màu nền chính
-        
-        style = ttk.Style(self)
-        style.theme_use('clam') # Sử dụng theme 'clam' vì nó dễ tùy chỉnh nhất
+        # Hiển thị giữa màn hình
+        self._center_window()
 
-        # --- Định nghĩa màu sắc ---
-        BG_COLOR = "#2E2E2E"       # Nền tối
-        FG_COLOR = "#FFFFFF"       # Chữ trắng
-        LIGHT_BG = "#3C3C3C"     # Nền cho Entry, Treeview
-        ACCENT_COLOR = "#4A4AFF"   # Màu nhấn (Xanh/Tím)
-        RED_COLOR = "#FF5555"      # Màu nút Xóa
+        # Tải dữ liệu lần đầu
+        self.fetch_data()
 
-        # --- Cấu hình chung ---
-        style.configure('.', 
-                        background=BG_COLOR, 
-                        foreground=FG_COLOR, 
-                        font=('Arial', 11))
-        
-        # --- Cấu hình riêng cho từng Widget ---
-        style.configure('TFrame', background=BG_COLOR)
-        style.configure('TLabel', background=BG_COLOR, foreground=FG_COLOR)
-        
-        # Nút bấm
-        style.configure('TButton', 
-                        background=ACCENT_COLOR, 
-                        foreground=FG_COLOR, 
-                        font=('Arial', 11, 'bold'), 
-                        borderwidth=0,
-                        padding=(10, 5))
-        style.map('TButton', background=[('active', '#5A5AFF')]) # Khi hover/click
-        
-        # Nút bấm màu đỏ (cho Xóa)
-        style.configure('Red.TButton', background=RED_COLOR)
-        style.map('Red.TButton', background=[('active', '#FF6565')])
+    def create_header(self):
+        """Tạo khung header màu tím ở trên cùng"""
+        header_frame = ctk.CTkFrame(self, height=80, fg_color="#5D3FD3", corner_radius=0)
+        header_frame.grid(row=0, column=0, columnspan=2, sticky="ew")
+        header_frame.pack_propagate(False)
 
-        # Ô nhập liệu
-        style.configure('TEntry', 
-                        fieldbackground=LIGHT_BG, 
-                        foreground=FG_COLOR, 
-                        borderwidth=1, 
-                        insertcolor=FG_COLOR) # Màu con trỏ
+        title_label = ctk.CTkLabel(
+            header_frame, 
+            text="Employee Management System", 
+            font=ctk.CTkFont(size=24, weight="bold")
+        )
+        title_label.pack(padx=20, pady=(15, 2), anchor="w") 
+
+        subtitle_label = ctk.CTkLabel(
+            header_frame, 
+            text="Manage your team efficiently", 
+            font=ctk.CTkFont(size=14)
+        )
+        subtitle_label.pack(padx=20, pady=(0, 15), anchor="w")
+
+    def create_left_panel(self):
+        """Tạo khung nhập liệu bên trái"""
+        left_panel = ctk.CTkFrame(self, width=320, fg_color="#2B2B2B")
+        left_panel.grid(row=1, column=0, sticky="nsw", padx=(10, 5), pady=10)
+        left_panel.grid_propagate(False)
+
+        details_label = ctk.CTkLabel(
+            left_panel, 
+            text="Employee Details", 
+            font=ctk.CTkFont(size=20, weight="bold")
+        )
+        details_label.pack(pady=20, padx=20, anchor="w")
+
+        # --- Form Fields ---
+        # Employee Code
+        id_label = ctk.CTkLabel(left_panel, text="Employee Code", anchor="w")
+        id_label.pack(fill="x", padx=20, pady=(0, 5))
+        self.txt_id = ctk.CTkEntry(
+            left_panel, 
+            placeholder_text="Enter employee code"
+        )
+        self.txt_id.pack(fill="x", padx=20, pady=(0, 15))
+
+        # Name
+        name_label = ctk.CTkLabel(left_panel, text="Name", anchor="w")
+        name_label.pack(fill="x", padx=20, pady=(0, 5))
+        self.txt_name = ctk.CTkEntry(
+            left_panel, 
+            placeholder_text="Enter name"
+        )
+        self.txt_name.pack(fill="x", padx=20, pady=(0, 15))
+
+        # Gender
+        gender_label = ctk.CTkLabel(left_panel, text="Gender", anchor="w")
+        gender_label.pack(fill="x", padx=20, pady=(0, 5))
+        self.combo_gender = ctk.CTkComboBox(
+            left_panel, 
+            values=["Nam", "Nữ", "Khác"]
+        )
+        self.combo_gender.set("Nam")
+        self.combo_gender.pack(fill="x", padx=20, pady=(0, 15))
+
+        # Email
+        email_label = ctk.CTkLabel(left_panel, text="Email", anchor="w")
+        email_label.pack(fill="x", padx=20, pady=(0, 5))
+        self.txt_email = ctk.CTkEntry(
+            left_panel, 
+            placeholder_text="Enter email"
+        )
+        self.txt_email.pack(fill="x", padx=20, pady=(0, 15))
+
+        # Phone
+        phone_label = ctk.CTkLabel(left_panel, text="Phone", anchor="w")
+        phone_label.pack(fill="x", padx=20, pady=(0, 5))
+        self.txt_phone = ctk.CTkEntry(
+            left_panel, 
+            placeholder_text="Enter phone"
+        )
+        self.txt_phone.pack(fill="x", padx=20, pady=(0, 15))
+
+        # Address
+        address_label = ctk.CTkLabel(left_panel, text="Address", anchor="w")
+        address_label.pack(fill="x", padx=20, pady=(0, 5))
+        self.txt_address = ctk.CTkEntry(
+            left_panel, 
+            placeholder_text="Enter address"
+        )
+        self.txt_address.pack(fill="x", padx=20, pady=(0, 15))
+
+        # Buttons frame
+        buttons_frame = ctk.CTkFrame(left_panel, fg_color="transparent")
+        buttons_frame.pack(fill="x", padx=20, pady=20)
         
-        # Combobox (Hộp chọn)
-        style.configure('TCombobox', 
-                        fieldbackground=LIGHT_BG, 
-                        foreground=FG_COLOR, 
-                        borderwidth=1)
+        # Add button
+        add_button = ctk.CTkButton(
+            buttons_frame,
+            text="Add Employee",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color="#28A745",
+            hover_color="#218838",
+            command=self.add_employee
+        )
+        add_button.pack(fill="x", pady=(0, 10))
+
+        # Buttons row
+        button_row = ctk.CTkFrame(buttons_frame, fg_color="transparent")
+        button_row.pack(fill="x", pady=(0, 10))
         
-        # Bảng dữ liệu (Treeview)
-        style.configure("Treeview", 
-                        background=LIGHT_BG, 
-                        foreground=FG_COLOR, 
-                        fieldbackground=LIGHT_BG, 
-                        rowheight=25)
-        style.map("Treeview", background=[('selected', ACCENT_COLOR)]) # Màu khi chọn 1 dòng
+        update_button = ctk.CTkButton(
+            button_row,
+            text="Update",
+            width=90,
+            fg_color="#3B82F6",
+            hover_color="#2563EB",
+            command=self.update_employee
+        )
+        update_button.pack(side="left", padx=(0, 5))
         
-        # Tiêu đề bảng
-        style.configure("Treeview.Heading", 
-                        background=BG_COLOR, 
-                        foreground=FG_COLOR, 
-                        font=('Arial', 12, 'bold'))
-        style.map("Treeview.Heading", background=[('active', LIGHT_BG)])
-
-    def _create_widgets(self):
-        """Tạo tất cả các thành phần con của cửa sổ chính."""
+        delete_button = ctk.CTkButton(
+            button_row,
+            text="Delete",
+            width=90,
+            fg_color="#EF4444",
+            hover_color="#DC2626",
+            command=self.delete_employee
+        )
+        delete_button.pack(side="left", padx=5)
         
-        # --- 1. Header Frame ---
-        # Chúng ta mô phỏng header bằng một Frame và các Label
-        header_frame = ttk.Frame(self, style='TFrame')
-        header_frame.pack(fill='x', padx=10, pady=10)
+        clear_button = ctk.CTkButton(
+            button_row,
+            text="Clear",
+            width=90,
+            fg_color="#6B7280",
+            hover_color="#4B5563",
+            command=self.clear_form
+        )
+        clear_button.pack(side="right")
+
+    def create_right_panel(self):
+        """Tạo khung hiển thị dữ liệu bên phải"""
+        right_panel = ctk.CTkFrame(self, fg_color="#343638")
+        right_panel.grid(row=1, column=1, sticky="nsew", padx=(5, 10), pady=10)
+        right_panel.grid_rowconfigure(1, weight=1)
+        right_panel.grid_columnconfigure(0, weight=1)
+
+        # --- Search Bar ---
+        self.create_search_bar(right_panel)
+
+        # --- Table ---
+        self.create_table(right_panel)
+
+    def create_search_bar(self, parent):
+        """Tạo thanh tìm kiếm và lọc"""
+        search_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        search_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
+
+        self.combo_search = ctk.CTkComboBox(
+            search_frame, 
+            values=["employee_code", "first_name", "phone_number", "email"],
+            width=150
+        )
+        self.combo_search.set("employee_code")
+        self.combo_search.pack(side="left", padx=(0, 10))
+
+        self.txt_search = ctk.CTkEntry(
+            search_frame, 
+            placeholder_text="Search..."
+        )
+        self.txt_search.pack(side="left", fill="x", expand=True, padx=10)
+
+        search_button = ctk.CTkButton(
+            search_frame, 
+            text="Search", 
+            width=100, 
+            fg_color="#5D3FD3", 
+            hover_color="#4A2F9D",
+            command=self.search_data
+        )
+        search_button.pack(side="left", padx=10)
+
+        show_all_button = ctk.CTkButton(
+            search_frame, 
+            text="Show All", 
+            width=100, 
+            fg_color="#5D3FD3", 
+            hover_color="#4A2F9D",
+            command=self.fetch_data
+        )
+        show_all_button.pack(side="left", padx=(0, 10))
+
+    def create_table(self, parent):
+        """Tạo bảng dữ liệu với Treeview"""
+        table_frame = tk.Frame(parent, bg="#343638")
+        table_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
+        table_frame.grid_rowconfigure(0, weight=1)
+        table_frame.grid_columnconfigure(0, weight=1)
+
+        # Scrollbars
+        scroll_x = ttk.Scrollbar(table_frame, orient=tk.HORIZONTAL)
+        scroll_y = ttk.Scrollbar(table_frame, orient=tk.VERTICAL)
         
-        ttk.Label(header_frame, text="Employee Management System", 
-                  font=("Arial", 24, "bold")).pack(anchor='w')
-        ttk.Label(header_frame, text="Manage your team efficiently", 
-                  font=("Arial", 12)).pack(anchor='w')
-
-        # --- 2. Main Frame (Chia làm 2 cột) ---
-        main_frame = ttk.Frame(self)
-        main_frame.pack(fill='both', expand=True, padx=10, pady=10)
+        # Treeview
+        self.tree_columns = ('ID', 'Code', 'Full Name', 'Email', 'Phone', 'Gender', 'Address')
+        self.tree = ttk.Treeview(table_frame, columns=self.tree_columns, 
+                                 xscrollcommand=scroll_x.set, yscrollcommand=scroll_y.set)
         
-        # Cấu hình grid: cột 1 (data) sẽ rộng gấp 3 cột 0 (form)
-        main_frame.grid_columnconfigure(1, weight=3)
-        main_frame.grid_rowconfigure(0, weight=1)
+        scroll_x.grid(row=1, column=0, sticky="ew")
+        scroll_y.grid(row=0, column=1, sticky="ns")
+        scroll_x.config(command=self.tree.xview)
+        scroll_y.config(command=self.tree.yview)
 
-        # --- 3. Form Nhập liệu (Bên trái) ---
-        self._create_form_panel(main_frame)
+        self.tree.heading('ID', text='ID')
+        self.tree.heading('Code', text='Emp. Code')
+        self.tree.heading('Full Name', text='Full Name')
+        self.tree.heading('Email', text='Email')
+        self.tree.heading('Phone', text='Phone')
+        self.tree.heading('Gender', text='Gender')
+        self.tree.heading('Address', text='Address')
+        self.tree['show'] = 'headings'
         
-        # --- 4. Bảng Dữ liệu (Bên phải) ---
-        self._create_data_panel(main_frame)
-
-    def _create_form_panel(self, parent):
-        """Tạo khung nhập liệu bên tay trái."""
-        form_frame = ttk.Frame(parent, padding=10)
-        form_frame.grid(row=0, column=0, sticky="nswe", padx=(0, 10))
-        form_frame.grid_rowconfigure(7, weight=1) # Đẩy các nút bấm xuống dưới
-
-        ttk.Label(form_frame, text="Employee Details", 
-                  font=("Arial", 16, "bold")).grid(row=0, column=0, columnspan=2, pady=10, sticky='w')
-
-        # Các nhãn và ô nhập liệu
-        labels = ["ID", "Name", "Phone", "Role", "Gender", "Email", "Salary"]
-        self.entries = {} # Dictionary để lưu các widget nhập liệu
+        self.tree.column('ID', width=50)
+        self.tree.column('Code', width=100)
+        self.tree.column('Full Name', width=150)
+        self.tree.column('Email', width=180)
+        self.tree.column('Phone', width=120)
+        self.tree.column('Gender', width=80)
+        self.tree.column('Address', width=200)
         
-        for i, label_text in enumerate(labels):
-            ttk.Label(form_frame, text=label_text).grid(row=i+1, column=0, sticky='w', padx=5, pady=8)
-            
-            if label_text in ["Role", "Gender"]:
-                # Dùng Combobox cho Role và Gender
-                widget = ttk.Combobox(form_frame, state='readonly', width=25)
-                if label_text == "Role":
-                    # TODO: Nên lấy danh sách Role từ database
-                    widget['values'] = ('Software Engineer', 'UX/UI Designer', 'Data Scientist', 'Network Engineer')
-                else:
-                    widget['values'] = ('Male', 'Female', 'Other')
-            else:
-                # Dùng Entry cho các trường khác
-                widget = ttk.Entry(form_frame, width=27)
-                
-            widget.grid(row=i+1, column=1, sticky='we', padx=5, pady=8)
-            self.entries[label_text] = widget
+        self.tree.grid(row=0, column=0, sticky="nsew")
+        self.tree.bind("<ButtonRelease-1>", self.get_cursor)
 
-        # ID không cho phép chỉnh sửa
-        self.entries["ID"].config(state='readonly', foreground="#AAAAAA")
+    # --- CÁC HÀM ĐÃ ĐƯỢC "NỐI" LẠI (REWIRED) ---
 
-        # Khung chứa các nút bấm (Add, Update, Delete, Clear)
-        button_frame = ttk.Frame(form_frame)
-        button_frame.grid(row=7, column=0, columnspan=2, sticky='sew', pady=10)
-        # Cấu hình 4 cột bằng nhau
-        button_frame.grid_columnconfigure((0,1,2,3), weight=1)
-        
-        ttk.Button(button_frame, text="Add", command=self._add_employee).grid(row=0, column=0, sticky='ew', padx=2)
-        ttk.Button(button_frame, text="Update", command=self._update_employee).grid(row=0, column=1, sticky='ew', padx=2)
-        ttk.Button(button_frame, text="Delete", style='Red.TButton', command=self._delete_employee).grid(row=0, column=2, sticky='ew', padx=2)
-        ttk.Button(button_frame, text="Clear", command=self._clear_form).grid(row=0, column=3, sticky='ew', padx=2)
-
-
-    def _create_data_panel(self, parent):
-        """Tạo khung dữ liệu (bảng) bên tay phải."""
-        data_frame = ttk.Frame(parent, padding=10)
-        data_frame.grid(row=0, column=1, sticky="nswe")
-        data_frame.grid_rowconfigure(1, weight=1) # Cho bảng Treeview co giãn
-        data_frame.grid_columnconfigure(0, weight=1)
-
-        # Thanh tìm kiếm
-        search_frame = ttk.Frame(data_frame)
-        search_frame.grid(row=0, column=0, sticky='ew', pady=(0, 10))
-        search_frame.grid_columnconfigure(1, weight=1)
-
-        self.search_by_combo = ttk.Combobox(search_frame, state='readonly', values=['All', 'Name', 'Role', 'ID'])
-        self.search_by_combo.current(0)
-        self.search_by_combo.grid(row=0, column=0, padx=(0,5))
-        
-        self.search_entry = ttk.Entry(search_frame, width=30)
-        self.search_entry.grid(row=0, column=1, sticky='we', padx=5)
-        
-        ttk.Button(search_frame, text="Search", command=self._search_data).grid(row=0, column=2, padx=5)
-        ttk.Button(search_frame, text="Show All", command=self.load_all_employees).grid(row=0, column=3, padx=5)
-
-        # Khung chứa bảng và thanh cuộn
-        tree_frame = ttk.Frame(data_frame)
-        tree_frame.grid(row=1, column=0, sticky='nswe')
-        tree_frame.grid_rowconfigure(0, weight=1)
-        tree_frame.grid_columnconfigure(0, weight=1)
-
-        # Bảng dữ liệu (Treeview)
-        columns = ('ID', 'Name', 'Phone', 'Role', 'Gender', 'Email', 'Salary')
-        self.tree = ttk.Treeview(tree_frame, columns=columns, show='headings')
-        
-        # Định nghĩa các cột
-        for col in columns:
-            self.tree.heading(col, text=col)
-            self.tree.column(col, width=100, anchor='center')
-        
-        # Gán sự kiện khi click vào một dòng
-        self.tree.bind('<<TreeviewSelect>>', self._on_tree_select)
-        
-        # Thanh cuộn
-        scrollbar = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL, command=self.tree.yview)
-        self.tree.configure(yscroll=scrollbar.set)
-        
-        # Vị trí của bảng và thanh cuộn
-        self.tree.grid(row=0, column=0, sticky='nswe')
-        scrollbar.grid(row=0, column=1, sticky='ns')
-
-    # --- Các hàm xử lý sự kiện ---
-
-    def load_all_employees(self):
-        """Yêu cầu controller lấy dữ liệu và hiển thị lên bảng."""
+    def fetch_data(self):
+        """SỬA: Gọi Controller để lấy dữ liệu."""
+        self.tree.delete(*self.tree.get_children())
         try:
-            # Xóa dữ liệu cũ trên bảng
-            for item in self.tree.get_children():
-                self.tree.delete(item)
-            
-            # Lấy dữ liệu mới từ controller
-            employees = self.controller.get_all_employees()
-            
-            # Chèn dữ liệu mới vào bảng
-            for emp in employees:
-                # Chuyển đổi dữ liệu employee object thành tuple cho hiển thị
-                display_data = (
-                    emp.id if hasattr(emp, 'id') else '',
-                    f"{emp.first_name} {emp.last_name}".strip() if hasattr(emp, 'first_name') else emp.name if hasattr(emp, 'name') else '',
-                    emp.phone_number if hasattr(emp, 'phone_number') else '',
-                    emp.position_title if hasattr(emp, 'position_title') else '',
-                    emp.gender if hasattr(emp, 'gender') else '',
-                    emp.email if hasattr(emp, 'email') else '',
-                    getattr(emp, 'salary', '0.00')
-                )
-                self.tree.insert('', tk.END, values=display_data)
-                
+            employee_list = self.controller.get_all_employees_for_view()
+            if employee_list:
+                for item in employee_list:
+                    self.tree.insert("", tk.END, values=item)
         except Exception as e:
-            messagebox.showerror("Lỗi", f"Không thể tải dữ liệu nhân viên: {str(e)}")
-            print(f"Chi tiết lỗi: {e}")
+            messagebox.showerror("Lỗi", f"Không thể tải dữ liệu: {e}")
 
-    def _on_tree_select(self, event):
-        """Sự kiện khi người dùng click vào một dòng trên bảng."""
-        selected_items = self.tree.selection()
-        if not selected_items:
+    def add_employee(self):
+        """SỬA: Thu thập dữ liệu và gọi Controller."""
+        # 1. Thu thập dữ liệu thô từ Form
+        data = {
+            'employee_code': self.txt_id.get(),
+            'first_name': self.txt_name.get(), # Controller sẽ tự tách tên
+            'gender': self.combo_gender.get(),
+            'email': self.txt_email.get(),
+            'phone_number': self.txt_phone.get(),
+            'address': self.txt_address.get(),
+            # Các trường này DB của bạn yêu cầu (từ schema)
+            'date_of_birth': '1990-01-01', # Tạm thời - Cần thêm vào form
+            'hire_date': '2025-01-01', # Tạm thời - Cần thêm vào form
+            'status': 'Đang làm việc'
+        }
+
+        # 2. Gọi "bộ não" (Controller) để xử lý
+        try:
+            result_message = self.controller.add_employee(data)
+            messagebox.showinfo("Thông báo", result_message)
+            self.fetch_data() # Yêu cầu tải lại bảng
+            self.clear_form()
+        except Exception as e:
+            messagebox.showerror("Lỗi", f"Không thể thêm nhân viên: {e}")
+
+    def update_employee(self):
+        """SỬA: Thu thập dữ liệu và gọi Controller."""
+        employee_code = self.txt_id.get()
+        if not employee_code:
+            messagebox.showerror("Lỗi", "Vui lòng chọn nhân viên để cập nhật")
             return
-        
-        # Lấy dữ liệu của dòng đã chọn
-        selected_item = selected_items[0]
-        values = self.tree.item(selected_item, 'values')
-        
-        # Xóa form và điền dữ liệu mới
-        self._clear_form(clear_selection=False)
-        
-        self.entries['ID'].config(state='normal')
-        self.entries['ID'].insert(0, values[0]) # ID
-        self.entries['ID'].config(state='readonly', foreground="#AAAAAA")
-        
-        self.entries['Name'].insert(0, values[1]) # Name
-        self.entries['Phone'].insert(0, values[2]) # Phone
-        self.entries['Role'].set(values[3]) # Role
-        self.entries['Gender'].set(values[4]) # Gender
-        self.entries['Email'].insert(0, values[5]) # Email
-        self.entries['Salary'].insert(0, values[6]) # Salary
-
-    def _clear_form(self, clear_selection=True):
-        """Xóa trắng các ô nhập liệu trên form."""
-        self.entries['ID'].config(state='normal')
-        self.entries['ID'].delete(0, tk.END)
-        self.entries['ID'].config(state='readonly')
-        
-        for key in ['Name', 'Phone', 'Email', 'Salary']:
-            self.entries[key].delete(0, tk.END)
             
-        self.entries['Role'].set('')
-        self.entries['Gender'].set('')
+        data = {
+            'first_name': self.txt_name.get(), # Controller sẽ tự tách tên
+            'gender': self.combo_gender.get(),
+            'email': self.txt_email.get(),
+            'phone_number': self.txt_phone.get(),
+            'address': self.txt_address.get(),
+        }
         
-        if clear_selection:
-            # Bỏ chọn tất cả các dòng trên bảng
-            for item in self.tree.selection():
-                self.tree.selection_remove(item)
-
-    # --- Các hàm gọi Controller (Cần triển khai logic) ---
-
-    def _add_employee(self):
-        """Thêm nhân viên mới vào database."""
         try:
-            # Kiểm tra dữ liệu đầu vào
-            name = self.entries['Name'].get().strip()
-            phone = self.entries['Phone'].get().strip()
-            role = self.entries['Role'].get()
-            gender = self.entries['Gender'].get()
-            email = self.entries['Email'].get().strip()
-            
-            if not name:
-                messagebox.showwarning("Lỗi", "Vui lòng nhập tên nhân viên!")
-                return
-                
-            # Xử lý salary
-            salary_value = self.entries['Salary'].get().strip()
+            result_message = self.controller.update_employee(employee_code, data)
+            messagebox.showinfo("Thông báo", result_message)
+            self.fetch_data()
+            self.clear_form()
+        except Exception as e:
+            messagebox.showerror("Lỗi", f"Không thể cập nhật: {e}")
+
+    def delete_employee(self):
+        """SỬA: Lấy ID và gọi Controller."""
+        employee_code = self.txt_id.get()
+        if not employee_code:
+            messagebox.showwarning("Lỗi", "Vui lòng chọn nhân viên để xóa")
+            return
+
+        if messagebox.askyesno("Xác nhận", f"Bạn có chắc muốn xóa nhân viên (Code: {employee_code})?"):
             try:
-                salary = float(salary_value) if salary_value else 0.0
-            except ValueError:
-                salary = 0.0
-                
-            # Map role sang position_id (cần có bảng positions trong DB)
-            role_mapping = {
-                'Software Engineer': 1,  # Software Engineer
-                'UX/UI Designer': 2,     # UX/UI Designer
-                'Data Scientist': 3,     # Data Scientist
-                'Network Engineer': 4    # Network Engineer
-            }
-            position_id = role_mapping.get(role, 1)  # Default to 1 if role not found
-                
-            data = {
-                "first_name": name.split()[0] if name.split() else name,
-                "last_name": " ".join(name.split()[1:]) if len(name.split()) > 1 else "",
-                "phone_number": phone,
-                "gender": gender,
-                "email": email or f"{name.lower().replace(' ', '.')}@company.com",
-                "salary": salary,
-                "date_of_birth": "1990-01-01",  # Giá trị mặc định
-                "hire_date": "2024-01-01",      # Giá trị mặc định
-                "department_id": 1,  # Mặc định department
-                "position_id": position_id,    # Sử dụng position_id từ role
-            }
-            
-            # Gọi controller để thêm nhân viên
-            result = self.controller.create_employee(data)
-            
-            if result:
-                messagebox.showinfo("Thành công", "Thêm nhân viên thành công!")
-                self._clear_form()
-                self.load_all_employees()  # Tải lại bảng
-            else:
-                messagebox.showerror("Lỗi", "Không thể thêm nhân viên!")
-                
-        except Exception as e:
-            messagebox.showerror("Lỗi", f"Có lỗi xảy ra: {str(e)}")
-            print(f"Chi tiết lỗi: {e}")
+                result_message = self.controller.delete_employee(employee_code)
+                messagebox.showinfo("Thông báo", result_message)
+                self.fetch_data()
+                self.clear_form()
+            except Exception as e:
+                messagebox.showerror("Lỗi", f"Không thể xóa: {e}")
 
-    def _update_employee(self):
-        """Cập nhật thông tin nhân viên."""
-        try:
-            # Kiểm tra xem có nhân viên nào được chọn không
-            selected_items = self.tree.selection()
-            if not selected_items:
-                messagebox.showwarning("Lỗi", "Vui lòng chọn một nhân viên để cập nhật!")
-                return
-                
-            # Lấy ID từ form
-            emp_id = self.entries['ID'].get().strip()
-            if not emp_id:
-                messagebox.showwarning("Lỗi", "Không có ID nhân viên để cập nhật!")
-                return
-                
-            # Lấy dữ liệu từ form
-            name = self.entries['Name'].get().strip()
-            phone = self.entries['Phone'].get().strip()
-            role = self.entries['Role'].get()
-            gender = self.entries['Gender'].get()
-            email = self.entries['Email'].get().strip()
-            salary_value = self.entries['Salary'].get().strip()
-            
-            if not name:
-                messagebox.showwarning("Lỗi", "Vui lòng nhập tên nhân viên!")
-                return
-                
-            # Xử lý salary
-            try:
-                salary = float(salary_value) if salary_value else 0.0
-            except ValueError:
-                salary = 0.0
-                
-            # Map role sang position_id
-            role_mapping = {
-                'Software Engineer': 1,  # Software Engineer
-                'UX/UI Designer': 2,     # UX/UI Designer
-                'Data Scientist': 3,     # Data Scientist
-                'Network Engineer': 4    # Network Engineer
-            }
-            position_id = role_mapping.get(role, 1)
-                
-            # Tạo dữ liệu để cập nhật
-            data = {
-                "first_name": name.split()[0] if name.split() else name,
-                "last_name": " ".join(name.split()[1:]) if len(name.split()) > 1 else "",
-                "phone_number": phone,
-                "gender": gender,
-                "email": email,
-                "salary": salary,
-                "position_id": position_id,
-            }
-            
-            # Gọi controller để cập nhật
-            result = self.controller.update_employee(int(emp_id), data)
-            
-            if result:
-                messagebox.showinfo("Thành công", "Cập nhật nhân viên thành công!")
-                self.load_all_employees()  # Tải lại bảng
-            else:
-                messagebox.showerror("Lỗi", "Không thể cập nhật nhân viên!")
-                
-        except Exception as e:
-            messagebox.showerror("Lỗi", f"Có lỗi xảy ra: {str(e)}")
-            print(f"Chi tiết lỗi: {e}")
+    def search_data(self):
+        """SỬA: Gọi Controller để tìm kiếm."""
+        search_by = self.combo_search.get()
+        search_text = self.txt_search.get()
         
-    def _delete_employee(self):
-        """Xóa nhân viên được chọn."""
+        if not search_by or not search_text:
+            messagebox.showwarning("Lỗi", "Vui lòng chọn điều kiện và nhập từ khóa tìm kiếm")
+            return
+
         try:
-            selected_items = self.tree.selection()
-            if not selected_items:
-                messagebox.showwarning("Lỗi", "Vui lòng chọn một nhân viên để xóa.")
-                return
-                
-            # Lấy ID từ form hoặc từ tree
-            emp_id = self.entries['ID'].get().strip()
-            if not emp_id:
-                # Lấy từ tree nếu form trống
-                selected_item = selected_items[0]
-                values = self.tree.item(selected_item, 'values')
-                emp_id = values[0]
-                
-            if not emp_id:
-                messagebox.showwarning("Lỗi", "Không thể xác định ID nhân viên!")
-                return
-                
-            # Xác nhận xóa
-            if messagebox.askyesno("Xác nhận Xóa", f"Bạn có chắc chắn muốn xóa nhân viên ID: {emp_id}?"):
-                # Gọi controller để xóa
-                result = self.controller.delete_employee(int(emp_id))
-                
-                if result:
-                    messagebox.showinfo("Thành công", "Xóa nhân viên thành công!")
-                    self._clear_form()
-                    self.load_all_employees()  # Tải lại bảng
-                else:
-                    messagebox.showerror("Lỗi", "Không thể xóa nhân viên!")
-                    
+            results = self.controller.search_employees(search_by, search_text)
+            self.tree.delete(*self.tree.get_children())
+            if results:
+                for item in results:
+                    self.tree.insert("", tk.END, values=item)
+            else:
+                messagebox.showinfo("Thông báo", "Không tìm thấy kết quả")
         except Exception as e:
-            messagebox.showerror("Lỗi", f"Có lỗi xảy ra: {str(e)}")
-            print(f"Chi tiết lỗi: {e}")
+            messagebox.showerror("Lỗi", f"Lỗi tìm kiếm: {e}")
 
-    def _search_data(self):
-        search_term = self.search_entry.get()
-        search_by = self.search_by_combo.get()
-        # TODO: Triển khai logic tìm kiếm và tải lại bảng
-        messagebox.showinfo("Chức năng", f"Tìm kiếm với: {search_term} theo {search_by} - Cần được triển khai!")
+    # --- CÁC HÀM LOGIC CỦA VIEW (GIỮ NGUYÊN) ---
+    
+    def get_cursor(self, event):
+        """GIỮ NGUYÊN: Hàm này là logic của View."""
+        try:
+            cursor_row = self.tree.focus()
+            content = self.tree.item(cursor_row)
+            row = content['values']
+            
+            self.txt_id.delete(0, tk.END)
+            self.txt_id.insert(0, row[1]) # Cột 1 là 'Code'
+            self.txt_name.delete(0, tk.END)
+            self.txt_name.insert(0, row[2]) # Cột 2 là 'Full Name'
+            self.combo_gender.set(row[5]) # Cột 5 là 'Gender'
+            self.txt_email.delete(0, tk.END)
+            self.txt_email.insert(0, row[3]) # Cột 3 là 'Email'
+            self.txt_phone.delete(0, tk.END)
+            self.txt_phone.insert(0, row[4]) # Cột 4 là 'Phone'
+            self.txt_address.delete(0, tk.END)
+            self.txt_address.insert(0, row[6]) # Cột 6 là 'Address'
+        except (IndexError, tk.TclError):
+            pass
 
+    def clear_form(self):
+        """GIỮ NGUYÊN: Hàm này là logic của View."""
+        self.txt_id.delete(0, "end")
+        self.txt_name.delete(0, "end")
+        self.combo_gender.set('')
+        self.txt_email.delete(0, "end")
+        self.txt_phone.delete(0, "end")
+        self.txt_address.delete(0, "end")
+
+    def _center_window(self) -> None:
+        """Center this window on the primary screen without changing its size."""
+        self.update_idletasks()
+        
+        # Lấy kích thước đã thiết lập từ geometry ban đầu
+        try:
+            geom = self.geometry().split('+')[0]
+            w_str, h_str = geom.split('x')
+            w, h = int(w_str), int(h_str)
+        except Exception:
+            # Fallback nếu không parse được
+            w, h = 1280, 720
+
+        # Tính toán vị trí giữa màn hình
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
+        x = (sw - w) // 2
+        y = (sh - h) // 2
+        
+        # Chỉ thay đổi vị trí, giữ nguyên kích thước
+        self.geometry(f"+{x}+{y}")
