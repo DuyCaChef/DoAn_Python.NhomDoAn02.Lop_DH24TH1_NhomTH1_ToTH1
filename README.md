@@ -26,8 +26,6 @@
 
 ## 📬 Thông tin liên hệ (Contact)
 
-Đã thêm biểu tượng GitHub và liên kết tới trang GitHub của cả hai thành viên. Nếu bạn muốn thêm email, số điện thoại hoặc LinkedIn, gửi cho tôi thông tin đó và tôi sẽ cập nhật.
-
 - Phan Khánh Duy (DuyCaChef)
   - Vai trò: Thành viên nhóm
   - GitHub: https://github.com/DuyCaChef
