@@ -1,5 +1,10 @@
 # DoAn_Python.NhomDoAn02.Lop_DH24TH1_NhomTH1_ToTH1
 
+<!-- Python & tech badges -->
+[![Python](https://img.shields.io/badge/Python-3.13-blue?logo=python&logoColor=white)](https://www.python.org/)
+[![Tkinter](https://img.shields.io/badge/GUI-Tkinter-orange)](https://docs.python.org/3/library/tkinter.html)
+[![MySQL](https://img.shields.io/badge/Database-MySQL-00758F?logo=mysql&logoColor=white)](https://www.mysql.com/)
+
 # 🧑‍💼 ỨNG DỤNG QUẢN LÝ NHÂN SỰ BẰNG PYTHON, TKINTER VÀ MYSQL
 
 ## 🏫 Trường Đại học An Giang
@@ -18,6 +23,20 @@
 | Nguyễn Tuấn Hải | DTH235638 | DH24TH1 |
 
 ---
+
+## 📬 Thông tin liên hệ (Contact)
+
+Đã thêm biểu tượng GitHub và liên kết tới trang GitHub của cả hai thành viên. Nếu bạn muốn thêm email, số điện thoại hoặc LinkedIn, gửi cho tôi thông tin đó và tôi sẽ cập nhật.
+
+- Phan Khánh Duy (DuyCaChef)
+  - Vai trò: Thành viên nhóm
+  - GitHub: https://github.com/DuyCaChef
+  - Badge: ![Duy GitHub](https://img.shields.io/badge/GitHub-DuyCaChef-181717?logo=github&logoColor=white)
+
+- Nguyễn Tuấn Hải (TuanHaii)
+  - Vai trò: Thành viên nhóm
+  - GitHub: https://github.com/TuanHaii
+  - Badge: ![Tuan GitHub](https://img.shields.io/badge/GitHub-TuanHaii-181717?logo=github&logoColor=white)
 
 ## 🎯 Mục tiêu đồ án
 
@@ -121,6 +140,7 @@ python main.py
 - **Password**: `admin123`
 
 *(Hoặc tài khoản bạn đã tạo trong quá trình seed data)*
+
 ## 🧱 Cấu trúc thư mục dự án
 
 ```
