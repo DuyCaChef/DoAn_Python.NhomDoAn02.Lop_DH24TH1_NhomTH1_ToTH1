@@ -7,10 +7,11 @@ from tkinter import ttk
 # SỬA: Đổi tên class thành 'MainWindow' và kế thừa từ ctk.CTk
 class MainWindow(ctk.CTk):
     
-    # SỬA: Hàm __init__ nhận 'controller'
-    def __init__(self, controller): 
+    # SỬA: Hàm __init__ nhận 'controller' và 'auth_controller'
+    def __init__(self, controller, auth_controller=None): 
         super().__init__() # Khởi tạo ctk.CTk
         self.controller = controller # LƯU LẠI "BỘ NÃO"
+        self.auth_controller = auth_controller # LƯU AUTH CONTROLLER
 
         # --- CẬP NHẬT UI/UX HIỆN ĐẠI ---
         self.title("Employee Management System")
@@ -27,6 +28,9 @@ class MainWindow(ctk.CTk):
         self.create_left_panel()
         self.create_right_panel()
 
+        # Áp dụng quyền cho các button
+        self.apply_permissions()
+
         # Hiển thị giữa màn hình
         self._center_window()
 
@@ -39,19 +43,31 @@ class MainWindow(ctk.CTk):
         header_frame.grid(row=0, column=0, columnspan=2, sticky="ew")
         header_frame.pack_propagate(False)
 
+        # Container để chứa title và role
+        header_container = ctk.CTkFrame(header_frame, fg_color="transparent")
+        header_container.pack(fill="both", expand=True, padx=20)
+
         title_label = ctk.CTkLabel(
-            header_frame, 
+            header_container, 
             text="Employee Management System", 
             font=ctk.CTkFont(size=24, weight="bold")
         )
-        title_label.pack(padx=20, pady=(15, 2), anchor="w") 
+        title_label.pack(pady=(15, 2), anchor="w") 
 
+        # Hiển thị role của user
+        role_text = "Manage your team efficiently"
+        if self.auth_controller:
+            current_role = self.auth_controller.get_current_role()
+            current_user = self.auth_controller.get_current_user()
+            username = current_user.get('username', 'Unknown') if current_user else 'Unknown'
+            role_text = f"Logged in as: {username} ({current_role})"
+        
         subtitle_label = ctk.CTkLabel(
-            header_frame, 
-            text="Manage your team efficiently", 
+            header_container, 
+            text=role_text, 
             font=ctk.CTkFont(size=14)
         )
-        subtitle_label.pack(padx=20, pady=(0, 15), anchor="w")
+        subtitle_label.pack(pady=(0, 15), anchor="w")
 
     def create_left_panel(self):
         """Tạo khung nhập liệu bên trái"""
@@ -133,8 +149,8 @@ class MainWindow(ctk.CTk):
         buttons_frame = ctk.CTkFrame(left_panel, fg_color="transparent")
         buttons_frame.pack(fill="x", padx=20, pady=20)
         
-        # Add button
-        add_button = ctk.CTkButton(
+        # Add button - LƯU VÀO INSTANCE VARIABLE
+        self.add_button = ctk.CTkButton(
             buttons_frame,
             text="Add Employee",
             font=ctk.CTkFont(size=14, weight="bold"),
@@ -142,7 +158,7 @@ class MainWindow(ctk.CTk):
             hover_color="#218838",
             command=self.add_employee
         )
-        add_button.pack(fill="x", pady=(0, 10))
+        self.add_button.pack(fill="x", pady=(0, 10))
 
         # Buttons row - Grid layout để đều nhau
         button_row = ctk.CTkFrame(buttons_frame, fg_color="transparent")
@@ -153,23 +169,23 @@ class MainWindow(ctk.CTk):
         button_row.grid_columnconfigure(1, weight=1, uniform="button")
         button_row.grid_columnconfigure(2, weight=1, uniform="button")
         
-        update_button = ctk.CTkButton(
+        self.update_button = ctk.CTkButton(
             button_row,
             text="Update",
             fg_color="#3B82F6",
             hover_color="#2563EB",
             command=self.update_employee
         )
-        update_button.grid(row=0, column=0, padx=5, sticky="ew")
+        self.update_button.grid(row=0, column=0, padx=5, sticky="ew")
         
-        delete_button = ctk.CTkButton(
+        self.delete_button = ctk.CTkButton(
             button_row,
             text="Delete",
             fg_color="#EF4444",
             hover_color="#DC2626",
             command=self.delete_employee
         )
-        delete_button.grid(row=0, column=1, padx=5, sticky="ew")
+        self.delete_button.grid(row=0, column=1, padx=5, sticky="ew")
         
         clear_button = ctk.CTkButton(
             button_row,
@@ -423,3 +439,24 @@ class MainWindow(ctk.CTk):
         
         # Chỉ thay đổi vị trí, giữ nguyên kích thước
         self.geometry(f"+{x}+{y}")
+    
+    def apply_permissions(self):
+        """Áp dụng quyền dựa trên role của user"""
+        if not self.auth_controller:
+            return
+        
+        # Lấy thông tin role và quyền
+        current_role = self.auth_controller.get_current_role()
+        
+        # Disable các button dựa trên quyền
+        if not self.auth_controller.can_add_employees():
+            self.add_button.configure(state="disabled")
+        
+        if not self.auth_controller.can_edit_employees():
+            self.update_button.configure(state="disabled")
+        
+        if not self.auth_controller.can_delete_employees():
+            self.delete_button.configure(state="disabled")
+        
+        # Cập nhật header để hiển thị role
+        print(f"🔐 Đã áp dụng quyền cho role: {current_role}")

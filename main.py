@@ -58,14 +58,35 @@ class AppManager:
         login_app.mainloop()
 
     def launch_main_app(self):
-        """Mở cửa sổ Quản lý Nhân viên chính."""
-        if self.main_app_window is None or not self.main_app_window.winfo_exists():
-            self.main_app_window = MainWindow(
-                controller=self.employee_controller
-            )
-            self.main_app_window.mainloop()
+        """Phân luồng user dựa trên role sau khi đăng nhập."""
+        current_role = self.auth_controller.get_current_role()
+        
+        if current_role in ['Admin', 'Manager']:
+            # Admin và Manager vào trang quản lý nhân viên
+            if self.main_app_window is None or not self.main_app_window.winfo_exists():
+                self.main_app_window = MainWindow(
+                    controller=self.employee_controller,
+                    auth_controller=self.auth_controller
+                )
+                self.main_app_window.mainloop()
+            else:
+                self.main_app_window.focus()
+        
+        elif current_role == 'User':
+            # User vào trang riêng (sẽ phát triển sau)
+            self.launch_user_window()
+        
         else:
-            self.main_app_window.focus()
+            messagebox.showerror("Lỗi phân quyền", 
+                                 f"Vai trò '{current_role}' chưa được hỗ trợ.")
+    
+    def launch_user_window(self):
+        """Mở cửa sổ dành cho User (chưa phát triển)."""
+        # Tạm thời hiển thị thông báo
+        messagebox.showinfo("Thông báo", 
+                            "Trang dành cho User đang được phát triển.\n" + 
+                            "Role: User sẽ có giao diện riêng trong phiên bản tiếp theo.")
+        print("🚧 User window - Coming soon!")
 
 if __name__ == "__main__":
     AppManager()
