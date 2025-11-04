@@ -28,6 +28,9 @@ class MainWindow(ctk.CTk):
         self.create_left_panel()
         self.create_right_panel()
 
+        # Khởi tạo positions cho department mặc định
+        self.on_department_changed("Marketing")
+
         # Áp dụng quyền cho các button
         self.apply_permissions()
 
@@ -145,6 +148,27 @@ class MainWindow(ctk.CTk):
         )
         self.txt_address.pack(fill="x", padx=20, pady=(0, 15))
 
+        # Department - ComboBox với 4 phòng ban
+        department_label = ctk.CTkLabel(left_panel, text="Department", anchor="w")
+        department_label.pack(fill="x", padx=20, pady=(0, 5))
+        self.combo_department = ctk.CTkComboBox(
+            left_panel,
+            values=["Marketing", "IT", "Finance", "HR"],
+            command=self.on_department_changed  # Event khi đổi department
+        )
+        self.combo_department.set("Marketing")  # Giá trị mặc định
+        self.combo_department.pack(fill="x", padx=20, pady=(0, 15))
+
+        # Position - ComboBox liên kết với Department
+        position_label = ctk.CTkLabel(left_panel, text="Position", anchor="w")
+        position_label.pack(fill="x", padx=20, pady=(0, 5))
+        self.combo_position = ctk.CTkComboBox(
+            left_panel,
+            values=[],  # Sẽ được cập nhật động
+            command=self.on_position_changed  # Event khi đổi position
+        )
+        self.combo_position.pack(fill="x", padx=20, pady=(0, 15))
+
         # Buttons frame
         buttons_frame = ctk.CTkFrame(left_panel, fg_color="transparent")
         buttons_frame.pack(fill="x", padx=20, pady=20)
@@ -259,8 +283,8 @@ class MainWindow(ctk.CTk):
         scroll_x = ttk.Scrollbar(table_frame, orient=tk.HORIZONTAL)
         scroll_y = ttk.Scrollbar(table_frame, orient=tk.VERTICAL)
         
-        # Treeview
-        self.tree_columns = ('ID', 'Code', 'Full Name', 'Email', 'Phone', 'Gender', 'Address')
+        # Treeview - Thêm cột Department
+        self.tree_columns = ('ID', 'Code', 'Full Name', 'Email', 'Phone', 'Gender', 'Address', 'Department', 'Position')
         self.tree = ttk.Treeview(table_frame, columns=self.tree_columns, 
                                  xscrollcommand=scroll_x.set, yscrollcommand=scroll_y.set)
         
@@ -276,6 +300,8 @@ class MainWindow(ctk.CTk):
         self.tree.heading('Phone', text='Phone')
         self.tree.heading('Gender', text='Gender')
         self.tree.heading('Address', text='Address')
+        self.tree.heading('Department', text='Department')
+        self.tree.heading('Position', text='Position')
         self.tree['show'] = 'headings'
         
         self.tree.column('ID', width=50)
@@ -285,6 +311,8 @@ class MainWindow(ctk.CTk):
         self.tree.column('Phone', width=120)
         self.tree.column('Gender', width=80)
         self.tree.column('Address', width=200)
+        self.tree.column('Department', width=100)
+        self.tree.column('Position', width=150)
         
         self.tree.grid(row=0, column=0, sticky="nsew")
         self.tree.bind("<ButtonRelease-1>", self.get_cursor)
@@ -304,7 +332,14 @@ class MainWindow(ctk.CTk):
 
     def add_employee(self):
         """SỬA: Thu thập dữ liệu và gọi Controller."""
-        # 1. Thu thập dữ liệu thô từ Form
+        # 1. Lấy department_id và position_id
+        department_name = self.combo_department.get()
+        department_id = self.get_department_id(department_name)
+        
+        position_title = self.combo_position.get()
+        position_id = self.get_position_id(position_title)
+        
+        # 2. Thu thập dữ liệu thô từ Form
         data = {
             'employee_code': self.txt_id.get(),
             'first_name': self.txt_name.get(), # Controller sẽ tự tách tên
@@ -312,13 +347,15 @@ class MainWindow(ctk.CTk):
             'email': self.txt_email.get(),
             'phone_number': self.txt_phone.get(),
             'address': self.txt_address.get(),
+            'department_id': department_id,
+            'position_id': position_id,
             # Các trường này DB của bạn yêu cầu (từ schema)
             'date_of_birth': '1990-01-01', # Tạm thời - Cần thêm vào form
             'hire_date': '2025-01-01', # Tạm thời - Cần thêm vào form
             'status': 'Đang làm việc'
         }
 
-        # 2. Gọi "bộ não" (Controller) để xử lý
+        # 3. Gọi "bộ não" (Controller) để xử lý
         try:
             result_message = self.controller.add_employee(data)
             messagebox.showinfo("Thông báo", result_message)
@@ -333,6 +370,13 @@ class MainWindow(ctk.CTk):
         if not employee_code:
             messagebox.showerror("Lỗi", "Vui lòng chọn nhân viên để cập nhật")
             return
+        
+        # Lấy department_id và position_id
+        department_name = self.combo_department.get()
+        department_id = self.get_department_id(department_name)
+        
+        position_title = self.combo_position.get()
+        position_id = self.get_position_id(position_title)
             
         data = {
             'first_name': self.txt_name.get(), # Controller sẽ tự tách tên
@@ -340,6 +384,8 @@ class MainWindow(ctk.CTk):
             'email': self.txt_email.get(),
             'phone_number': self.txt_phone.get(),
             'address': self.txt_address.get(),
+            'department_id': department_id,
+            'position_id': position_id,
         }
         
         try:
@@ -406,6 +452,20 @@ class MainWindow(ctk.CTk):
             self.txt_phone.insert(0, row[4]) # Cột 4 là 'Phone'
             self.txt_address.delete(0, tk.END)
             self.txt_address.insert(0, row[6]) # Cột 6 là 'Address'
+            
+            # Load department (Cột 7)
+            if len(row) > 7 and row[7]:
+                dept_name = row[7]
+                self.combo_department.set(dept_name)
+                # Cập nhật positions cho department này
+                self.on_department_changed(dept_name)
+                
+                # Load position (Cột 8)
+                if len(row) > 8 and row[8]:
+                    self.combo_position.set(row[8])
+            else:
+                self.combo_department.set("Marketing")
+                self.on_department_changed("Marketing")
         except (IndexError, tk.TclError):
             pass
 
@@ -417,6 +477,8 @@ class MainWindow(ctk.CTk):
         self.txt_email.delete(0, "end")
         self.txt_phone.delete(0, "end")
         self.txt_address.delete(0, "end")
+        self.combo_department.set("Marketing")  # Reset về giá trị mặc định
+        self.on_department_changed("Marketing")  # Cập nhật positions cho Marketing
 
     def _center_window(self) -> None:
         """Center this window on the primary screen without changing its size."""
@@ -439,6 +501,127 @@ class MainWindow(ctk.CTk):
         
         # Chỉ thay đổi vị trí, giữ nguyên kích thước
         self.geometry(f"+{x}+{y}")
+    
+    def get_department_id(self, department_name):
+        """Chuyển đổi tên department thành department_id."""
+        department_mapping = {
+            'Marketing': 1,
+            'IT': 2,
+            'Finance': 3,
+            'HR': 4
+        }
+        return department_mapping.get(department_name, 1)
+    
+    def get_department_name(self, department_id):
+        """Chuyển đổi department_id thành tên department."""
+        department_mapping = {
+            1: 'Marketing',
+            2: 'IT',
+            3: 'Finance',
+            4: 'HR'
+        }
+        return department_mapping.get(department_id, 'Marketing')
+    
+    def get_positions_by_department(self, department_name):
+        """
+        Lấy danh sách positions theo department.
+        """
+        positions_mapping = {
+            'Marketing': ['Marketing Manager', 'Content Creator', 'Social Media Specialist'],
+            'IT': ['IT Manager', 'Software Engineer', 'Web Developer', 'Tester'],
+            'Finance': ['Finance Manager', 'Accountant', 'Financial Analyst', 'Auditor'],
+            'HR': ['HR Manager', 'Recruiter', 'Training Specialist']
+        }
+        return positions_mapping.get(department_name, [])
+    
+    def get_department_by_position(self, position_title):
+        """
+        Tìm department dựa trên position.
+        Trả về tên department.
+        """
+        position_to_dept = {
+            # Marketing positions
+            'Marketing Manager': 'Marketing',
+            'Content Creator': 'Marketing',
+            'Social Media Specialist': 'Marketing',
+            # IT positions
+            'IT Manager': 'IT',
+            'Software Engineer': 'IT',
+            'Web Developer': 'IT',
+            'Tester': 'IT',
+            # Finance positions
+            'Finance Manager': 'Finance',
+            'Accountant': 'Finance',
+            'Financial Analyst': 'Finance',
+            'Auditor': 'Finance',
+            # HR positions
+            'HR Manager': 'HR',
+            'Recruiter': 'HR',
+            'Training Specialist': 'HR'
+        }
+        return position_to_dept.get(position_title, 'Marketing')
+    
+    def get_position_id(self, position_title):
+        """Chuyển đổi tên position thành position_id."""
+        position_mapping = {
+            # Marketing (1-3)
+            'Marketing Manager': 1,
+            'Content Creator': 2,
+            'Social Media Specialist': 3,
+            # IT (4-6, 13)
+            'Software Engineer': 4,
+            'Web Developer': 5,
+            'Tester': 6,
+            'IT Manager': 13,
+            # Finance (7-9, 14)
+            'Accountant': 7,
+            'Financial Analyst': 8,
+            'Auditor': 9,
+            'Finance Manager': 14,
+            # HR (10-12)
+            'HR Manager': 10,
+            'Recruiter': 11,
+            'Training Specialist': 12
+        }
+        return position_mapping.get(position_title, 1)
+    
+    def get_position_name(self, position_id):
+        """Chuyển đổi position_id thành tên position."""
+        position_mapping = {
+            1: 'Marketing Manager',
+            2: 'Content Creator',
+            3: 'Social Media Specialist',
+            4: 'Software Engineer',
+            5: 'Web Developer',
+            6: 'Tester',
+            7: 'Accountant',
+            8: 'Financial Analyst',
+            9: 'Auditor',
+            10: 'HR Manager',
+            11: 'Recruiter',
+            12: 'Training Specialist',
+            13: 'IT Manager',
+            14: 'Finance Manager'
+        }
+        return position_mapping.get(position_id, 'Marketing Manager')
+    
+    def on_department_changed(self, selected_dept):
+        """
+        Event handler: Khi user chọn department, 
+        cập nhật danh sách positions tương ứng.
+        """
+        positions = self.get_positions_by_department(selected_dept)
+        self.combo_position.configure(values=positions)
+        if positions:
+            self.combo_position.set(positions[0])  # Set position đầu tiên
+    
+    def on_position_changed(self, selected_position):
+        """
+        Event handler: Khi user chọn position,
+        tự động cập nhật department tương ứng.
+        """
+        department = self.get_department_by_position(selected_position)
+        self.combo_department.set(department)
     
     def apply_permissions(self):
         """Áp dụng quyền dựa trên role của user"""

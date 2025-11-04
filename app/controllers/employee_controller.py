@@ -9,8 +9,8 @@ class EmployeeController:
     """
     
     def __init__(self):
-        # Các cột mà Treeview của bạn bạn mong đợi
-        self.view_columns = ('ID', 'Code', 'Full Name', 'Email', 'Phone', 'Gender', 'Address')
+        # Các cột mà Treeview mong đợi - Thêm Department và Position
+        self.view_columns = ('ID', 'Code', 'Full Name', 'Email', 'Phone', 'Gender', 'Address', 'Department', 'Position')
 
     def _format_data_for_view(self, employees_raw: List[Dict[str, Any]]) -> List[Tuple]:
         """
@@ -27,7 +27,9 @@ class EmployeeController:
                 emp.get('email', ''),
                 emp.get('phone_number', ''),
                 emp.get('gender', ''),
-                emp.get('address', '')
+                emp.get('address', ''),
+                emp.get('department_name', ''),  # Department từ JOIN
+                emp.get('position_title', '')    # ✅ Position từ JOIN
             ))
         return formatted_list
 

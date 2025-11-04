@@ -66,8 +66,8 @@ def add_employee(data: Dict[str, Any]) -> Optional[int]:
 
 def update_employee(employee_code: str, data: Dict[str, Any]):
     """Cập nhật nhân viên dựa trên employee_code."""
-    # Lọc ra các trường mà View gửi lên (an toàn)
-    safe_cols = ["first_name", "last_name", "gender", "email", "phone_number", "address"]
+    # Lọc ra các trường mà View gửi lên (an toàn) - Thêm department_id và position_id
+    safe_cols = ["first_name", "last_name", "gender", "email", "phone_number", "address", "department_id", "position_id"]
     
     set_clauses = []
     params = []
