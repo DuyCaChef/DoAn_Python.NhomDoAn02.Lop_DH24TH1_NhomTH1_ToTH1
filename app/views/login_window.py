@@ -45,6 +45,7 @@ class LoginWindow(ctk.CTk):
         usernameLabel.place(x=80, y=120)
         self.usernameEntry = ctk.CTkEntry(self, placeholder_text='Nhập tên đăng nhập', font=('Goudy Old Style', 15), bg_color='white', width=250)
         self.usernameEntry.place(x=80, y=150)
+        self.after(100, lambda: self.usernameEntry.focus_set())
 
         passwordLabel = ctk.CTkLabel(self, text='Mật khẩu', font=('Goudy Old Style', 17, 'italic'), bg_color='white', text_color='#0A3871')
         passwordLabel.place(x=80, y=200)

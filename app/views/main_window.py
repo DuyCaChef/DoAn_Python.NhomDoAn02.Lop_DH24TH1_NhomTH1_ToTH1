@@ -55,9 +55,16 @@ class MainWindow(ctk.CTk):
 
     def create_left_panel(self):
         """Tạo khung nhập liệu bên trái"""
-        left_panel = ctk.CTkFrame(self, width=320, fg_color="#2B2B2B")
-        left_panel.grid(row=1, column=0, sticky="nsw", padx=(10, 5), pady=10)
-        left_panel.grid_propagate(False)
+        # Frame chứa - cố định width
+        left_container = ctk.CTkFrame(self, width=320, fg_color="#2B2B2B")
+        left_container.grid(row=1, column=0, sticky="nsw", padx=(10, 5), pady=10)
+        left_container.grid_propagate(False)
+        left_container.grid_rowconfigure(0, weight=1)
+        left_container.grid_columnconfigure(0, weight=1)
+        
+        # Scrollable frame bên trong
+        left_panel = ctk.CTkScrollableFrame(left_container, fg_color="#2B2B2B")
+        left_panel.grid(row=0, column=0, sticky="nsew")
 
         details_label = ctk.CTkLabel(
             left_panel, 
@@ -137,39 +144,41 @@ class MainWindow(ctk.CTk):
         )
         add_button.pack(fill="x", pady=(0, 10))
 
-        # Buttons row
+        # Buttons row - Grid layout để đều nhau
         button_row = ctk.CTkFrame(buttons_frame, fg_color="transparent")
         button_row.pack(fill="x", pady=(0, 10))
+        
+        # Cấu hình 3 cột đều nhau
+        button_row.grid_columnconfigure(0, weight=1, uniform="button")
+        button_row.grid_columnconfigure(1, weight=1, uniform="button")
+        button_row.grid_columnconfigure(2, weight=1, uniform="button")
         
         update_button = ctk.CTkButton(
             button_row,
             text="Update",
-            width=90,
             fg_color="#3B82F6",
             hover_color="#2563EB",
             command=self.update_employee
         )
-        update_button.pack(side="left", padx=(0, 5))
+        update_button.grid(row=0, column=0, padx=5, sticky="ew")
         
         delete_button = ctk.CTkButton(
             button_row,
             text="Delete",
-            width=90,
             fg_color="#EF4444",
             hover_color="#DC2626",
             command=self.delete_employee
         )
-        delete_button.pack(side="left", padx=5)
+        delete_button.grid(row=0, column=1, padx=5, sticky="ew")
         
         clear_button = ctk.CTkButton(
             button_row,
             text="Clear",
-            width=90,
             fg_color="#6B7280",
             hover_color="#4B5563",
             command=self.clear_form
         )
-        clear_button.pack(side="right")
+        clear_button.grid(row=0, column=2, padx=5, sticky="ew")
 
     def create_right_panel(self):
         """Tạo khung hiển thị dữ liệu bên phải"""
