@@ -70,24 +70,19 @@ class LoginWindow(ctk.CTk):
 
 
     def _on_login(self, event=None):
-        """
-        SỬA: Hàm này giờ sẽ gọi Controller.
-        """
         username = self.usernameEntry.get().strip()
         password = self.passwordEntry.get().strip()
-        
+
         try:
-            # 1. GỌI CONTROLLER (dùng logic caching_sha2_password)
             success = self.controller.login(username, password)
             
             if success:
                 messagebox.showinfo('Đăng nhập thành công', 'Chào mừng đến với hệ thống!')
-                self.destroy() # Đóng cửa sổ login
+                self.destroy() 
                 if callable(self.on_login_success):
-                    self.on_login_success() # 2. Gọi callback để mở app chính
+                    self.on_login_success() 
             
         except Exception as e:
-            # 3. Bắt lỗi từ Controller
             messagebox.showerror('Lỗi đăng nhập', str(e))
             self.passwordEntry.delete(0, tk.END)
             self.passwordEntry.focus_set()

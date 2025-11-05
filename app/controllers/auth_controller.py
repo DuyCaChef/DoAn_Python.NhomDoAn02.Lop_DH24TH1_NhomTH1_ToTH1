@@ -1,4 +1,5 @@
-from app.database.auth_queries import AuthQueries # Import class mới
+from typing import Any, Dict
+from app.database.auth_queries import AuthQueries 
 import hashlib
 
 class AuthController:
@@ -8,52 +9,49 @@ class AuthController:
     def __init__(self):
         self.db = AuthQueries() # Khởi tạo class AuthQueries
         
-        # Các vai trò được phép đăng nhập
-        self.ALLOWED_ROLES = ['Admin', 'Manager', 'User'] 
-        
-        # Lưu thông tin user hiện tại
-        self.current_user = None
-        self.permissions = {}
+        # Các vai trò được phép đăng nhập (dựa theo yêu cầu của bạn)
+        self.ALLOWED_ROLES = ['Admin', 'HR Manager', 'Team Lead', 'Manager']
 
-    def login(self, username, password):
+    def login(self, username, password) -> bool:
         """
         Kiểm tra thông tin đăng nhập và lưu quyền của user.
         """
         if not username or not password:
             raise ValueError("Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu!")
-        
+        user_data = self.db.get_user_by_username(username)
         # Bước 1: Xác thực mật khẩu bằng MySQL authentication
-        if not self.db.attempt_login_connection(username, password):
+        if not user_data:
             raise ValueError("Tên đăng nhập hoặc mật khẩu không đúng!")
-            
-        # Bước 2: Lấy thông tin user và role
-        user_role_data = self.db.get_app_role(username)
+        # Bước 2: Kiểm tra mật khẩu
+        stored_hash = user_data.get('password_hash')
+        if not self.db.check_password(password, stored_hash):
+            raise ValueError("Tên đăng nhập hoặc mật khẩu không đúng!")
         
-        if not user_role_data:
-            raise ValueError(f"User '{username}' không được cấp quyền trong ứng dụng.")
             
         # Bước 3: Kiểm tra vai trò
-        role_name = user_role_data.get('role_name')
+        role_name = user_data.get('role_name')
         if role_name not in self.ALLOWED_ROLES:
             raise ValueError(f"Vai trò '{role_name}' không có quyền đăng nhập vào hệ thống này.")
         
         # Bước 4: Lưu thông tin user và lấy quyền
-        self.current_user = user_role_data
-        self.permissions = self.db.get_user_permissions(username)
-            
-        # Bước 5: Đăng nhập thành công
-        print(f"Người dùng '{username}' (Vai trò: {role_name}) đã đăng nhập thành công.")
-        print(f"Quyền: {self.permissions}")
+        print(f"Người dùng '{username}' (Vai trò: {role_name}) đã đăng nhập.")
+        self.current_user_data = user_data
         return True
     
     def get_current_user(self):
         """Lấy thông tin user hiện tại"""
         return self.current_user
     
-    def get_current_role(self):
-        """Lấy role của user hiện tại"""
-        if self.current_user:
-            return self.current_user.get('role_name')
+    def get_current_user_employee_id(self) -> int:
+        """Trả về ID nhân viên của người đang đăng nhập"""
+        if self.current_user_data:
+            return self.current_user_data.get('employee_id')    
+        return None
+    
+    def get_current_user_role(self) -> str:
+        """Trả về vai trò của người đang đăng nhập"""
+        if self.current_user_data:
+            return self.current_user_data.get('role_name')
         return None
     
     def can_view_employees(self):
