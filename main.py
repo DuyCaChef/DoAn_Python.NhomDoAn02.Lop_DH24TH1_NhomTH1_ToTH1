@@ -39,18 +39,18 @@ class AppManager:
 
         if not check_database_connection():
             root = ctk.CTk()
-            root.withdraw() 
-            root.destroy()
+            root.withdraw(); root.destroy()
             return
             
         self.auth_controller = AuthController()
-        self.employee_controller = EmployeeController()
-        self.main_app_window = None
+        self.employee_controller = EmployeeController(
+            auth_controller=self.auth_controller
+        )
         
+        self.main_app_window = None
         self.launch_login()
 
     def launch_login(self):
-        """Mở cửa sổ đăng nhập."""
         login_app = LoginWindow(
             auth_controller=self.auth_controller,
             on_login_success=self.launch_main_app 
@@ -58,11 +58,15 @@ class AppManager:
         login_app.mainloop()
 
     def launch_main_app(self):
-        """Mở cửa sổ Quản lý Nhân viên chính."""
+        role = self.auth_controller.get_current_user_role()
+        
         if self.main_app_window is None or not self.main_app_window.winfo_exists():
             self.main_app_window = MainWindow(
-                controller=self.employee_controller
+                controller=self.employee_controller 
             )
+            # (Bạn cần tự triển khai hàm này trong MainWindow)
+            # self.main_app_window.setup_ui_for_role(role) 
+            
             self.main_app_window.mainloop()
         else:
             self.main_app_window.focus()

@@ -4,6 +4,5 @@ This module exposes `db_init`, `db_config`, and `queries` by importing the proje
 `database` package. It handles different import contexts (running as script or package).
 """
 """app.database package: expose local DB modules."""
-from . import db_init, db_config, connection, queries
-
-__all__ = ["db_init", "db_config", "connection", "queries"]
+from . import db_init, db_config, connection
+__all__ = ["db_init", "db_config", "connection"]
