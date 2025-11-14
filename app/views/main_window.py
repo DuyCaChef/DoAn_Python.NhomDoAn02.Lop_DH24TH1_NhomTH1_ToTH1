@@ -2,12 +2,9 @@ import customtkinter as ctk
 from tkinter import messagebox
 import tkinter as tk
 from tkinter import ttk
-# SỬA: Không import database ở đây
-
-# SỬA: Đổi tên class thành 'MainWindow' và kế thừa từ ctk.CTk
 class MainWindow(ctk.CTk):
     
-    # SỬA: Chỉ cần 'controller'. Chúng ta sẽ lấy 'auth' từ 'controller.auth'
+        #Chỉ cần 'controller'. Chúng ta sẽ lấy 'auth' từ 'controller.auth'
     def __init__(self, controller): 
         super().__init__() # Khởi tạo ctk.CTk
         self.controller = controller # LƯU LẠI "BỘ NÃO"
@@ -37,31 +34,44 @@ class MainWindow(ctk.CTk):
         
         # SỬA: Áp dụng quyền hạn sau khi tạo xong UI
         self.apply_permissions()
+        
+        # Cập nhật tên user trong header
+        self.update_welcome_message()
 
     def create_header(self):
         """Tạo khung header màu tím ở trên cùng"""
         header_frame = ctk.CTkFrame(self, height=80, fg_color="#5D3FD3", corner_radius=0)
         header_frame.grid(row=0, column=0, columnspan=2, sticky="ew")
         header_frame.pack_propagate(False)
-        title_name_user_label = ctk.CTkLabel(
-            header_frame,
-            text="Welcome, User!",  # Sẽ cập nhật tên người dùng sau
-            font=ctk.CTkFont(size=16)
-        )
-        title_name_user_label.pack(padx=20, pady=(15, 2), anchor="w")
+        
+        # Frame chứa tiêu đề (bên trái)
+        left_header_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
+        left_header_frame.pack(side="left", padx=20, pady=10, fill="y")
+        
         title_label = ctk.CTkLabel(
-            header_frame, 
+            left_header_frame, 
             text="Employee Management System", 
             font=ctk.CTkFont(size=24, weight="bold")
         )
-        title_label.pack(padx=20, pady=(5, 10), anchor="w")
+        title_label.pack(anchor="w")
 
         subtitle_label = ctk.CTkLabel(
-            header_frame, 
+            left_header_frame, 
             text="Manage your team efficiently", 
             font=ctk.CTkFont(size=14)
         )
-        subtitle_label.pack(padx=20, pady=(0, 15), anchor="w")
+        subtitle_label.pack(anchor="w", pady=(2, 0))
+        
+        # Frame chứa welcome user (bên phải)
+        right_header_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
+        right_header_frame.pack(side="right", padx=20, pady=10)
+        
+        self.welcome_label = ctk.CTkLabel(
+            right_header_frame,
+            text="Welcome, User!",
+            font=ctk.CTkFont(size=16, weight="bold")
+        )
+        self.welcome_label.pack(anchor="e")
 
     def create_left_panel(self):
         """Tạo khung nhập liệu bên trái"""
@@ -226,10 +236,10 @@ class MainWindow(ctk.CTk):
 
         self.combo_search = ctk.CTkComboBox(
             search_frame, 
-            values=["employee code", "first name", "phone number", "email"],
+            values=["Employee Code", "First Name", "Last Name", "Phone", "Email"],
             width=150
         )
-        self.combo_search.set("employee code")
+        self.combo_search.set("Employee Code")
         self.combo_search.pack(side="left", padx=(0, 10))
 
         self.txt_search = ctk.CTkEntry(
@@ -481,8 +491,19 @@ class MainWindow(ctk.CTk):
             messagebox.showwarning("Lỗi", "Vui lòng chọn điều kiện và nhập từ khóa tìm kiếm")
             return
 
+        # Map giá trị hiển thị sang database field
+        search_field_map = {
+            "Employee Code": "employee_code",
+            "First Name": "first_name",
+            "Last Name": "last_name",
+            "Phone": "phone_number",
+            "Email": "email"
+        }
+        
+        db_field = search_field_map.get(search_by, "employee_code")
+
         try:
-            results = self.controller.search_employees(search_by, search_text)
+            results = self.controller.search_employees(db_field, search_text)
             self.tree.delete(*self.tree.get_children())
             
             if results:
@@ -596,3 +617,21 @@ class MainWindow(ctk.CTk):
         
         if not auth.can_delete_employees():
             self.delete_button.configure(state="disabled")
+    
+    def update_welcome_message(self):
+        """Cập nhật thông điệp chào mừng với tên user thực tế"""
+        auth = self.controller.auth
+        if auth and hasattr(auth, 'current_user_data') and auth.current_user_data:
+            # Lấy tên từ user data
+            user_data = auth.current_user_data
+            username = user_data.get('username', 'User')
+            role = user_data.get('role', '')
+            
+            # Cập nhật label
+            welcome_text = f"Welcome, {username}!"
+            if role:
+                welcome_text += f" ({role})"
+            
+            self.welcome_label.configure(text=welcome_text)
+        else:
+            self.welcome_label.configure(text="Welcome, User!")

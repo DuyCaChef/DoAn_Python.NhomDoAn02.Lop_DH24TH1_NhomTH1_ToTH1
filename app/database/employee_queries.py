@@ -207,6 +207,13 @@ class EmployeeQueries:
         query = "SELECT id, title FROM positions WHERE department_id = %s ORDER BY title"
         return self._execute_query(query, params=(department_id,), fetch_all=True)
 
+    def get_all_positions(self) -> Optional[Dict[str, Any]]:
+        query = """
+                SELECT d.name,d.id FROM positions p JOIN departments d ON p.department_id = d.id 
+                ORDER BY d.name
+        """
+        return self._execute_query(query, fetch_all=True)
+
     def get_department_by_position_id(self, position_id: int) -> Optional[Dict[str, Any]]:
         """Tìm phòng ban (department) của một chức vụ (position)."""
         query = """

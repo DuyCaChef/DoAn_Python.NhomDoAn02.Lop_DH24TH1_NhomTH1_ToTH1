@@ -18,14 +18,8 @@ class EmployeeController:
     def _load_position_map(self):
         """Tải (tên -> id) cho tất cả Chức vụ."""
         try:
-            # TODO: Cần hàm 'get_all_positions' trong queries
-            # Tạm thời hardcode
-            return {
-                'Software Engineer': 4,
-                'Web Developer': 5,
-                'Tester': 6,
-                'IT Manager': 13,
-            }
+            positions = self.db.get_all_positions()
+            return {pos['title']: pos['id'] for pos in positions}          
         except Exception as e:
             print(f"Lỗi tải Position Map: {e}")
             return {}
