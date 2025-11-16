@@ -32,9 +32,15 @@ class MainWindow(ctk.CTk):
         self.auth_controller = auth_controller
         self.on_logout_callback = on_logout_callback
         
-        # Cấu hình cửa sổ
+        # Cấu hình cửa sổ - FULLSCREEN
         self.title("Hệ thống quản lý nhân sự")
-        self.geometry("1280x800")
+        
+        # Set fullscreen
+        self.attributes('-fullscreen', True)
+        
+        # Thêm phím ESC để thoát fullscreen (tùy chọn)
+        self.bind('<Escape>', lambda e: self.attributes('-topmost', False))
+        self.bind('<F11>', lambda e: self.attributes('-fullscreen', True))
         
         # Tạo Header Component
         self.header = HeaderComponent(
@@ -53,8 +59,8 @@ class MainWindow(ctk.CTk):
         # Update header với thông tin user
         self.header.update_user_info()
         
-        # Hiển thị giữa màn hình
-        self._center_window()
+        # Không cần center window vì đã fullscreen
+        # self._center_window()
     
     def setup_ui_for_role(self):
         """Thiết lập giao diện dựa trên vai trò người dùng"""
@@ -145,16 +151,27 @@ class MainWindow(ctk.CTk):
         self.tab_view.set("Thông tin cá nhân")
     
     def logout(self):
-        """Đăng xuất khỏi hệ thống và quay về màn hình đăng nhập"""
+        """Đăng xuất khỏi hệ thống và THOÁT ỨNG DỤNG"""
+        # Xác nhận trước khi thoát
+        confirm = messagebox.askyesno(
+            "Xác nhận đăng xuất",
+            "Bạn có chắc chắn muốn đăng xuất?\nỨng dụng sẽ được đóng.",
+            parent=self
+        )
+        
+        if not confirm:
+            return  # User hủy, không làm gì
+        
+        # Đăng xuất
         if self.auth_controller:
             self.auth_controller.logout()
         
-        # Gọi callback để quay về login (nếu có)
-        if self.on_logout_callback:
-            self.on_logout_callback()
-        
         # Destroy main window
         self.destroy()
+        
+        # Thoát ứng dụng hoàn toàn
+        import sys
+        sys.exit(0)
     
     def _center_window(self):
         """Hiển thị cửa sổ ở giữa màn hình"""

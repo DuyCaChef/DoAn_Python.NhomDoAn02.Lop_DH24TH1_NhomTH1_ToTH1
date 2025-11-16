@@ -57,14 +57,11 @@ class AppManager:
     def launch_main_app(self):
         """Khởi chạy cửa sổ chính sau khi login thành công"""
         if self.main_app_window is None or not self.main_app_window.winfo_exists():
-            # Tạo cửa sổ chính với auth_controller và logout callback
-            # MainWindow mới tự động setup UI dựa trên role trong auth_controller
+            # Tạo cửa sổ chính trực tiếp
             self.main_app_window = MainWindow(
                 auth_controller=self.auth_controller,
                 on_logout_callback=self.on_logout_and_relaunch_login
             )
-            
-            self.main_app_window.mainloop()
         else:
             self.main_app_window.focus()
     

@@ -6,6 +6,7 @@ from tkinter import messagebox
 from typing import Callable
 # SỬA: Import controller
 from app.controllers.auth_controller import AuthController
+from app.views.components.loading_overlay import LoadingOverlay
 
 # TÊN CLASS PHẢI LÀ 'LoginWindow'
 class LoginWindow(ctk.CTk):
@@ -73,19 +74,46 @@ class LoginWindow(ctk.CTk):
         username = self.usernameEntry.get().strip()
         password = self.passwordEntry.get().strip()
 
+        # Hiển thị loading overlay
+        loading = LoadingOverlay(self, message="Đang đăng nhập...")
+        loading.show()
+        
+        # Xử lý login sau 200ms (để UI render loading trước)
+        self.after(200, lambda: self._process_login(username, password, loading))
+
+    def _process_login(self, username: str, password: str, loading: LoadingOverlay):
+        """Xử lý logic đăng nhập thực tế"""
         try:
             success = self.controller.login(username, password)
             
             if success:
-                messagebox.showinfo('Đăng nhập thành công', 'Chào mừng đến với hệ thống!')
-                self.destroy() 
-                if callable(self.on_login_success):
-                    self.on_login_success() 
+                # Cập nhật message - Tăng thời gian để thấy rõ loading
+                loading.update_message("Đăng nhập thành công! Đang tải giao diện...")
+                
+                # Delay 2000ms (2 giây) để user thấy loading đầy đủ
+                self.after(2000, lambda: self._complete_login(loading))
+            else:
+                loading.hide()
+                messagebox.showerror('Lỗi đăng nhập', 'Sai tên đăng nhập hoặc mật khẩu')
+                self.passwordEntry.delete(0, tk.END)
+                self.passwordEntry.focus_set()
             
         except Exception as e:
+            loading.hide()
             messagebox.showerror('Lỗi đăng nhập', str(e))
             self.passwordEntry.delete(0, tk.END)
             self.passwordEntry.focus_set()
+    
+    def _complete_login(self, loading: LoadingOverlay):
+        """Hoàn tất đăng nhập và chuyển sang main window"""
+        loading.hide()
+        
+        # Gọi callback TRƯỚC KHI destroy
+        if callable(self.on_login_success):
+            self.on_login_success()
+        
+        # Destroy sau khi callback đã tạo main window
+        self.after(100, self.destroy)
 
     def _center_window(self) -> None:
         self.update_idletasks()

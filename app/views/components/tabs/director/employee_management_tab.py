@@ -13,6 +13,7 @@ sys.path.insert(0, str(project_root))
 
 from app.views.components.tabs.base_tab import BaseTab
 from app.controllers.employee_controller import EmployeeController
+from app.views.dialogs.employee_form_dialog import EmployeeFormDialog
 
 
 class EmployeeManagementTab(BaseTab):
@@ -190,7 +191,7 @@ class EmployeeManagementTab(BaseTab):
             (employee.get('email', ''), 0.15),
             (employee.get('phone', '') or employee.get('phone_number', ''), 0.10),
             (employee.get('department_name', ''), 0.12),
-            (employee.get('role_name', ''), 0.12),
+            (employee.get('position_title', ''), 0.12),  # ✅ FIX: đổi từ 'role_name' sang 'position_title'
             (employee.get('employment_status', '') or employee.get('status', ''), 0.10)
         ]
         
@@ -309,18 +310,34 @@ class EmployeeManagementTab(BaseTab):
     
     def add_employee(self):
         """Mở form thêm nhân viên mới"""
-        # TODO: Implement EmployeeForm
-        messagebox.showinfo("Thông báo", "Chức năng đang phát triển", parent=self.container)
+        EmployeeFormDialog(
+            parent=self.container,
+            employee_controller=self.employee_controller,
+            auth_controller=self.auth_controller,
+            mode="add",
+            on_success=self.fetch_data
+        )
     
     def view_employee(self, employee):
         """Xem chi tiết nhân viên"""
-        # TODO: Implement EmployeeForm
-        messagebox.showinfo("Thông báo", "Chức năng đang phát triển", parent=self.container)
+        EmployeeFormDialog(
+            parent=self.container,
+            employee_controller=self.employee_controller,
+            auth_controller=self.auth_controller,
+            mode="view",
+            employee_data=employee
+        )
     
     def edit_employee(self, employee):
         """Sửa thông tin nhân viên"""
-        # TODO: Implement EmployeeForm
-        messagebox.showinfo("Thông báo", "Chức năng đang phát triển", parent=self.container)
+        EmployeeFormDialog(
+            parent=self.container,
+            employee_controller=self.employee_controller,
+            auth_controller=self.auth_controller,
+            mode="edit",
+            employee_data=employee,
+            on_success=self.fetch_data
+        )
     
     def delete_employee(self, employee):
         """Xóa nhân viên"""

@@ -12,6 +12,7 @@ sys.path.insert(0, str(project_root))
 
 from app.views.components.tabs.base_tab import BaseTab
 from app.controllers.employee_controller import EmployeeController
+from app.views.dialogs.employee_form_dialog import EmployeeFormDialog
 
 
 class TeamManagementTab(BaseTab):
@@ -127,7 +128,7 @@ class TeamManagementTab(BaseTab):
             widget.destroy()
         
         try:
-            # Fetch team members
+            # Fetch team members - CHỈ LẤY NHÂN VIÊN THUỘC TEAM CỦA MANAGER
             employees = self.employee_controller.get_all_employees_for_view()
             
             if not employees:
@@ -173,7 +174,7 @@ class TeamManagementTab(BaseTab):
             (f"{employee.get('first_name', '')} {employee.get('last_name', '')}", 0.20),
             (employee.get('email', ''), 0.20),
             (employee.get('phone', '') or employee.get('phone_number', ''), 0.15),
-            (employee.get('role_name', ''), 0.15)
+            (employee.get('position_title', ''), 0.15)  # ✅ FIX: đổi từ 'role_name' sang 'position_title'
         ]
         
         x_pos = 0
@@ -225,14 +226,26 @@ class TeamManagementTab(BaseTab):
             edit_btn.pack(side="left", padx=2)
     
     def search_team(self):
-        """Tìm kiếm nhân viên"""
+        """Tìm kiếm nhân viên TRONG TEAM"""
         keyword = self.search_entry.get().strip()
         
         for widget in self.scrollable_frame.winfo_children()[1:]:
             widget.destroy()
         
         try:
-            employees = self.employee_controller.search_employees('first_name', keyword)
+            # Search ONLY within team members - không search toàn bộ công ty
+            if keyword:
+                # Lấy team members trước, rồi filter local
+                all_team_members = self.employee_controller.get_all_employees_for_view()
+                employees = [
+                    emp for emp in all_team_members
+                    if keyword.lower() in emp.get('first_name', '').lower()
+                    or keyword.lower() in emp.get('last_name', '').lower()
+                    or keyword.lower() in emp.get('email', '').lower()
+                ]
+            else:
+                # Nếu không có keyword, load lại team members
+                employees = self.employee_controller.get_all_employees_for_view()
             
             if not employees:
                 no_data = ctk.CTkLabel(
@@ -257,16 +270,32 @@ class TeamManagementTab(BaseTab):
             error_label.pack(pady=50)
     
     def add_employee(self):
-        """Thêm nhân viên mới"""
-        # TODO: Implement EmployeeForm
-        messagebox.showinfo("Thông báo", "Chức năng đang phát triển", parent=self.container)
+        """Thêm nhân viên mới - Mở form dialog"""
+        EmployeeFormDialog(
+            parent=self.container,
+            employee_controller=self.employee_controller,
+            auth_controller=self.auth_controller,
+            mode="add",
+            on_success=self.fetch_data  # Callback để refresh data sau khi thêm
+        )
     
     def view_employee(self, employee):
-        """Xem chi tiết"""
-        # TODO: Implement EmployeeForm
-        messagebox.showinfo("Thông báo", "Chức năng đang phát triển", parent=self.container)
+        """Xem chi tiết nhân viên"""
+        EmployeeFormDialog(
+            parent=self.container,
+            employee_controller=self.employee_controller,
+            auth_controller=self.auth_controller,
+            mode="view",
+            employee_data=employee
+        )
     
     def edit_employee(self, employee):
-        """Sửa thông tin"""
-        # TODO: Implement EmployeeForm
-        messagebox.showinfo("Thông báo", "Chức năng đang phát triển", parent=self.container)
+        """Sửa thông tin nhân viên"""
+        EmployeeFormDialog(
+            parent=self.container,
+            employee_controller=self.employee_controller,
+            auth_controller=self.auth_controller,
+            mode="edit",
+            employee_data=employee,
+            on_success=self.fetch_data  # Callback để refresh data sau khi sửa
+        )
