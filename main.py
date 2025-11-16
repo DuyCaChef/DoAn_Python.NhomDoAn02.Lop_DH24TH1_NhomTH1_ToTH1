@@ -43,9 +43,6 @@ class AppManager:
             return
             
         self.auth_controller = AuthController()
-        self.employee_controller = EmployeeController(
-            auth_controller=self.auth_controller
-        )
         
         self.main_app_window = None
         self.launch_login()
@@ -58,18 +55,27 @@ class AppManager:
         login_app.mainloop()
 
     def launch_main_app(self):
-        role = self.auth_controller.get_current_user_role()
-        
+        """Khởi chạy cửa sổ chính sau khi login thành công"""
         if self.main_app_window is None or not self.main_app_window.winfo_exists():
+            # Tạo cửa sổ chính với auth_controller và logout callback
+            # MainWindow mới tự động setup UI dựa trên role trong auth_controller
             self.main_app_window = MainWindow(
-                controller=self.employee_controller 
+                auth_controller=self.auth_controller,
+                on_logout_callback=self.on_logout_and_relaunch_login
             )
-            # (Bạn cần tự triển khai hàm này trong MainWindow)
-            # self.main_app_window.setup_ui_for_role(role) 
             
             self.main_app_window.mainloop()
         else:
             self.main_app_window.focus()
+    
+    def on_logout_and_relaunch_login(self):
+        """Callback sau khi logout - hiển thị lại màn hình login"""
+        # Delay một chút để main window destroy hoàn toàn
+        import time
+        time.sleep(0.1)
+        
+        # Mở lại login window
+        self.launch_login()
 
 if __name__ == "__main__":
     AppManager()

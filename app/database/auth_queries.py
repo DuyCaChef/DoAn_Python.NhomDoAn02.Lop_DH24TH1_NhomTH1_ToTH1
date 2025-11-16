@@ -33,10 +33,12 @@ class AuthQueries:
         finally:
             if conn and conn.is_connected():
                 conn.close()
-
+    
+        
     def get_user_by_username(self, username: str) -> Optional[Dict[str, Any]]:
         """
-        Lấy thông tin user (gồm password_hash) VÀ tên vai trò (role_name).
+        Lấy thông tin user (gồm password_hash) VÀ tên vai trò (role_name) 
+        VÀ thông tin nhân viên đầy đủ từ bảng employees.
         """
         conn = None
         try:
@@ -45,9 +47,23 @@ class AuthQueries:
             query = """
                 SELECT 
                     u.*, 
-                    r.name as role_name 
+                    r.name as role_name,
+                    e.id as employee_id,
+                    e.first_name,
+                    e.last_name,
+                    e.email,
+                    e.phone_number as phone,
+                    e.hire_date,
+                    e.status as employment_status,
+                    e.department_id,
+                    d.name as department_name,
+                    m.first_name as manager_first_name,
+                    m.last_name as manager_last_name
                 FROM users u
                 JOIN roles r ON u.role_id = r.id
+                LEFT JOIN employees e ON u.employee_id = e.id
+                LEFT JOIN departments d ON e.department_id = d.id
+                LEFT JOIN employees m ON e.manager_id = m.id
                 WHERE u.username = %s AND u.is_active = 1
             """
             cursor.execute(query, (username,))

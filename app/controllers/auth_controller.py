@@ -9,8 +9,8 @@ class AuthController:
     def __init__(self):
         self.db = AuthQueries() # Khởi tạo class AuthQueries
         
-        # Các vai trò được phép đăng nhập
-        self.ALLOWED_ROLES = ['Admin', 'Manager', 'Employee'] 
+        # SỬA: Đổi 'Admin' thành 'Director'
+        self.ALLOWED_ROLES = ['Director', 'Manager', 'Employee'] 
         self.current_user_data: Dict[str, Any] = None
 
     def login(self, username, password) -> bool:
@@ -58,7 +58,8 @@ class AuthController:
     def can_add_employees(self) -> bool:
         """Kiểm tra xem user có quyền Thêm NV không"""
         role = self.get_current_role()
-        return role in ['Admin', 'Manager']
+        # SỬA: Đổi 'Admin' thành 'Director'
+        return role in ['Director', 'Manager']
 
     def can_edit_employees(self) -> bool:
         """Kiểm tra xem user có quyền Sửa NV không"""
@@ -66,27 +67,31 @@ class AuthController:
         # Employee chỉ được sửa mình, logic đó sẽ
         # được xử lý ở EmployeeController.
         # Ở đây, chúng ta cho phép nút bấm được bật.
-        return role in ['Admin', 'Manager', 'Employee']
+        return role in ['Director', 'Manager', 'Employee']
 
     def can_delete_employees(self) -> bool:
         """Kiểm tra xem user có quyền Xóa NV không"""
         role = self.get_current_role()
-        return role in ['Admin'] # Chỉ Admin được xóa
+        # SỬA: Đổi 'Admin' thành 'Director'. Chỉ Director được xóa
+        return role in ['Director']
     
     def can_view_employees(self) -> bool:
         """Kiểm tra quyền xem nhân viên"""
         role = self.get_current_role()
-        return role in ['Admin', 'Manager', 'Employee']
+        # SỬA: Đổi 'Admin' thành 'Director'
+        return role in ['Director', 'Manager', 'Employee']
     
     def can_manage_users(self) -> bool:
         """Kiểm tra quyền quản lý tài khoản"""
         role = self.get_current_role()
-        return role in ['Admin']
+        # SỬA: Đổi 'Admin' thành 'Director'
+        return role in ['Director']
     
     def can_view_reports(self) -> bool:
         """Kiểm tra quyền xem báo cáo"""
         role = self.get_current_role()
-        return role in ['Admin', 'Manager']
+        # SỬA: Đổi 'Admin' thành 'Director'
+        return role in ['Director', 'Manager']
     
     def logout(self):
         """Đăng xuất - xóa thông tin user hiện tại"""

@@ -209,8 +209,10 @@ class EmployeeQueries:
 
     def get_all_positions(self) -> Optional[Dict[str, Any]]:
         query = """
-                SELECT d.name,d.id FROM positions p JOIN departments d ON p.department_id = d.id 
-                ORDER BY d.name
+                SELECT p.id, p.title, p.department_id, d.name as department_name
+                FROM positions p 
+                JOIN departments d ON p.department_id = d.id 
+                ORDER BY d.name, p.title
         """
         return self._execute_query(query, fetch_all=True)
 

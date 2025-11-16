@@ -36,7 +36,8 @@ class EmployeeController:
             
             print(f"Đang tải dữ liệu cho Role: {role}, Employee ID: {my_employee_id}")
             
-            if role == 'Admin':
+            # SỬA: Đổi từ 'Admin' thành 'Director'
+            if role == 'Director':
                 return self.db.get_all_employees() 
             elif role == 'Manager':
                 return self.db.get_employees_by_manager_id(my_employee_id)
@@ -65,7 +66,8 @@ class EmployeeController:
         'data' là dữ liệu thô từ các ô Entry.
         """
         role = self.auth.get_current_user_role()
-        if role not in ['Admin', 'Manager']: 
+        # SỬA: Đổi từ 'Admin' thành 'Director'
+        if role not in ['Director', 'Manager']: 
             raise Exception("Bạn không có quyền thêm nhân viên.")
         
         if not data['employee_code'] or not data['first_name']:
@@ -91,8 +93,8 @@ class EmployeeController:
         role = self.auth.get_current_user_role()
         my_emp_id = self.auth.get_current_user_employee_id()
         
-        # Admin được sửa tất cả, Employee chỉ được sửa mình
-        if role == 'Admin' or (role == 'Employee' and emp_id == my_emp_id):
+        # SỬA: Đổi 'Admin' thành 'Director'. Director được sửa tất cả, Employee chỉ được sửa mình
+        if role == 'Director' or (role == 'Employee' and emp_id == my_emp_id):
             
             if 'first_name' in data:
                 name_parts = data['first_name'].split(maxsplit=1)
@@ -111,7 +113,8 @@ class EmployeeController:
         View gọi hàm này để XÓA nhân viên.
         """
         role = self.auth.get_current_user_role()
-        if role != 'Admin': 
+        # SỬA: Đổi từ 'Admin' thành 'Director'
+        if role != 'Director': 
             raise Exception("Bạn không có quyền xóa nhân viên.")
             
         print(f"ĐANG XÓA: {emp_id}")
@@ -159,3 +162,33 @@ class EmployeeController:
             return None
         except Exception as e:
             raise Exception(f"Không thể tìm phòng ban: {str(e)}")
+    
+    # --- PERMISSION METHODS FOR UI ---
+    
+    def can_edit_employee(self, user_data: Dict[str, Any], employee: Dict[str, Any]) -> bool:
+        """Kiểm tra xem user có quyền sửa nhân viên này không"""
+        role = user_data.get('role_name')
+        my_emp_id = user_data.get('employee_id')
+        target_emp_id = employee.get('id') or employee.get('employee_id')
+        
+        # Director có thể sửa tất cả
+        if role == 'Director':
+            return True
+        
+        # Manager có thể sửa nhân viên trong phòng
+        if role == 'Manager':
+            target_manager_id = employee.get('manager_id')
+            return target_manager_id == my_emp_id
+        
+        # Employee chỉ có thể sửa chính mình
+        if role == 'Employee':
+            return target_emp_id == my_emp_id
+        
+        return False
+    
+    def can_delete_employee(self, user_data: Dict[str, Any], employee: Dict[str, Any]) -> bool:
+        """Kiểm tra xem user có quyền xóa nhân viên này không"""
+        role = user_data.get('role_name')
+        
+        # Chỉ Director mới có quyền xóa
+        return role == 'Director'
