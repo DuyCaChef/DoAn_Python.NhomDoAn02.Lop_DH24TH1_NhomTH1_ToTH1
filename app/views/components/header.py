@@ -4,6 +4,7 @@ Component hiển thị header với thông tin user và action buttons
 """
 import customtkinter as ctk
 from tkinter import messagebox
+from app.views.change_password_dialog import ChangePasswordDialog
 
 
 class HeaderComponent:
@@ -137,96 +138,23 @@ class HeaderComponent:
         return role_config.get(role, ("👤 Nhân viên", "#E0E0E0"))
     
     def open_change_password_dialog(self):
-        """Mở dialog đổi mật khẩu"""
-        dialog = ctk.CTkToplevel(self.parent)
-        dialog.title("Đổi mật khẩu")
-        dialog.geometry("400x350")
-        dialog.resizable(False, False)
-        dialog.transient(self.parent)
-        dialog.grab_set()
-        
-        # Center dialog
-        dialog.update_idletasks()
-        x = (dialog.winfo_screenwidth() // 2) - (400 // 2)
-        y = (dialog.winfo_screenheight() // 2) - (350 // 2)
-        dialog.geometry(f"400x350+{x}+{y}")
-        
-        # Header
-        header = ctk.CTkLabel(
-            dialog,
-            text="🔐 Đổi mật khẩu",
-            font=ctk.CTkFont(size=20, weight="bold")
-        )
-        header.pack(pady=20)
-        
-        # Form container
-        form_frame = ctk.CTkFrame(dialog, fg_color="transparent")
-        form_frame.pack(fill="both", expand=True, padx=30, pady=(0, 20))
-        
-        # Mật khẩu cũ
-        old_password_label = ctk.CTkLabel(form_frame, text="Mật khẩu cũ:", anchor="w")
-        old_password_label.pack(fill="x", pady=(0, 5))
-        old_password_entry = ctk.CTkEntry(form_frame, show="●", placeholder_text="Nhập mật khẩu cũ")
-        old_password_entry.pack(fill="x", pady=(0, 15))
-        
-        # Mật khẩu mới
-        new_password_label = ctk.CTkLabel(form_frame, text="Mật khẩu mới:", anchor="w")
-        new_password_label.pack(fill="x", pady=(0, 5))
-        new_password_entry = ctk.CTkEntry(form_frame, show="●", placeholder_text="Nhập mật khẩu mới")
-        new_password_entry.pack(fill="x", pady=(0, 15))
-        
-        # Xác nhận mật khẩu
-        confirm_password_label = ctk.CTkLabel(form_frame, text="Xác nhận mật khẩu:", anchor="w")
-        confirm_password_label.pack(fill="x", pady=(0, 5))
-        confirm_password_entry = ctk.CTkEntry(form_frame, show="●", placeholder_text="Nhập lại mật khẩu mới")
-        confirm_password_entry.pack(fill="x", pady=(0, 20))
-        
-        # Buttons
-        buttons_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
-        buttons_frame.pack(fill="x")
-        
-        def change_password():
-            old_pwd = old_password_entry.get().strip()
-            new_pwd = new_password_entry.get().strip()
-            confirm_pwd = confirm_password_entry.get().strip()
-            
-            if not all([old_pwd, new_pwd, confirm_pwd]):
-                messagebox.showwarning("Lỗi", "Vui lòng điền đầy đủ thông tin!", parent=dialog)
-                return
-            
-            if new_pwd != confirm_pwd:
-                messagebox.showerror("Lỗi", "Mật khẩu mới không khớp!", parent=dialog)
-                return
-            
-            if len(new_pwd) < 6:
-                messagebox.showwarning("Lỗi", "Mật khẩu mới phải có ít nhất 6 ký tự!", parent=dialog)
-                return
-            
-            # TODO: Implement với controller
-            messagebox.showinfo("Thành công", "Đổi mật khẩu thành công!", parent=dialog)
-            dialog.destroy()
-        
-        confirm_btn = ctk.CTkButton(
-            buttons_frame,
-            text="✓ Xác nhận",
-            command=change_password,
-            fg_color="#27AE60",
-            hover_color="#229954",
-            width=150
-        )
-        confirm_btn.pack(side="left", padx=(0, 10))
-        
-        cancel_btn = ctk.CTkButton(
-            buttons_frame,
-            text="✕ Hủy",
-            command=dialog.destroy,
-            fg_color="#95A5A6",
-            hover_color="#7F8C8D",
-            width=150
-        )
-        cancel_btn.pack(side="left")
-        
-        old_password_entry.focus()
+        """Mở dialog đổi mật khẩu với implementation đầy đủ"""
+        try:
+            # Sử dụng dialog mới với đầy đủ tính năng
+            dialog = ChangePasswordDialog(
+                parent=self.parent,
+                auth_controller=self.auth_controller,
+                on_success=lambda: print("✅ Password changed successfully!")
+            )
+        except Exception as e:
+            print(f"❌ Error opening change password dialog: {e}")
+            import traceback
+            traceback.print_exc()
+            messagebox.showerror(
+                "Lỗi",
+                f"Không thể mở dialog đổi mật khẩu: {str(e)}",
+                parent=self.parent
+            )
     
     def logout(self):
         """Đăng xuất khỏi hệ thống"""

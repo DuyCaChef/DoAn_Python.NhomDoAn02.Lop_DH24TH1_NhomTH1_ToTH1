@@ -3,14 +3,13 @@ Employee Form Dialog
 Dialog để thêm/sửa/xem thông tin nhân viên
 """
 
+import tkinter as tk
 import customtkinter as ctk
 from tkinter import messagebox
 from typing import Optional, Callable
 import re
-from app.views.components.loading_overlay import LoadingOverlay
 
-
-class EmployeeFormDialog:
+class EmployeeFormDialog(ctk.CTkToplevel):
     """Dialog form cho thêm/sửa/xem nhân viên"""
     
     def __init__(
@@ -22,15 +21,8 @@ class EmployeeFormDialog:
         employee_data: Optional[dict] = None,
         on_success: Optional[Callable] = None
     ):
-        """
-        Args:
-            parent: Widget cha (để làm transient)
-            employee_controller: Controller xử lý logic nhân viên
-            auth_controller: Controller lấy thông tin user hiện tại
-            mode: Chế độ - "add" (thêm mới), "edit" (sửa), "view" (xem)
-            employee_data: Dữ liệu nhân viên (dùng cho edit/view)
-            on_success: Callback khi thành công (để refresh data)
-        """
+        super().__init__(parent)
+        
         self.parent = parent
         self.employee_controller = employee_controller
         self.auth_controller = auth_controller
@@ -38,13 +30,18 @@ class EmployeeFormDialog:
         self.employee_data = employee_data or {}
         self.on_success = on_success
         
-        # Tạo dialog window
-        self.dialog = ctk.CTkToplevel(parent)
+        # Cấu hình cửa sổ
         self._setup_window()
-        self._create_ui()
         
-        # ⚠️ GỌI grab_set() SAU KHI đã tạo xong UI
-        self.dialog.grab_set()
+        # Set protocol để bắt sự kiện đóng cửa sổ
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
+        
+        # Force window update để đảm bảo sẵn sàng
+        self.update_idletasks()
+        
+        # CRITICAL: Delay UI creation 500ms để CTkToplevel được thiết lập HOÀN TOÀN
+        # CustomTkinter 5.2.2 + Python 3.13 cần thời gian dài hơn để khởi tạo font system
+        self.after(500, self._delayed_init)
         
     def _setup_window(self):
         """Cấu hình cửa sổ dialog"""
@@ -54,327 +51,325 @@ class EmployeeFormDialog:
             "view": "Xem thông tin nhân viên"
         }
         
-        self.dialog.title(titles.get(self.mode, "Nhân viên"))
-        self.dialog.geometry("600x750")
-        self.dialog.resizable(False, False)
-        self.dialog.transient(self.parent)
+        self.title(titles.get(self.mode, "Nhân viên"))
+        self.geometry("600x750")
+        self.resizable(False, False)
         
+        # Đặt dialog là con của parent
+        if self.parent:
+            self.transient(self.parent)
+            
         # Center dialog
-        self.dialog.update_idletasks()
-        x = (self.dialog.winfo_screenwidth() // 2) - (600 // 2)
-        y = (self.dialog.winfo_screenheight() // 2) - (750 // 2)
-        self.dialog.geometry(f"600x750+{x}+{y}")
-        
-        # ⚠️ GỌI grab_set() SAU KHI tạo xong UI
-        # Sẽ được gọi trong __init__ sau _create_ui()
-        
-    def _create_ui(self):
-        """Tạo giao diện"""
+        self.update_idletasks()
         try:
-            # Header
-            icons = {"add": "➕", "edit": "✏️", "view": "👁️"}
-            titles = {
-                "add": "Thêm nhân viên mới",
-                "edit": "Chỉnh sửa nhân viên",
-                "view": "Thông tin nhân viên"
-            }
+            # Cố gắng lấy vị trí tương đối so với cửa sổ cha
+            x = self.parent.winfo_x() + (self.parent.winfo_width() // 2) - (600 // 2)
+            y = self.parent.winfo_y() + (self.parent.winfo_height() // 2) - (750 // 2)
+            self.geometry(f"+{x}+{y}")
+        except:
+            # Fallback nếu không lấy được
+            screen_width = self.winfo_screenwidth()
+            screen_height = self.winfo_screenheight()
+            x = (screen_width - 600) // 2
+            y = (screen_height - 750) // 2
+            self.geometry(f"+{x}+{y}")
+    
+    def _delayed_init(self):
+        """Khởi tạo UI sau khi dialog đã sẵn sàng (tránh lỗi font)"""
+        # Kiểm tra window còn tồn tại không
+        try:
+            if not self.winfo_exists():
+                print("Window không còn tồn tại, bỏ qua _delayed_init")
+                return
+        except:
+            print("Không thể kiểm tra window, bỏ qua _delayed_init")
+            return
             
-            header = ctk.CTkLabel(
-                self.dialog,
-                text=f"{icons.get(self.mode, '')} {titles.get(self.mode, '')}",
-                font=ctk.CTkFont(size=20, weight="bold")
-            )
-            header.pack(pady=20)
+        try:
+            # Tạo UI
+            self._create_ui()
             
-            # Form container với scroll
-            self.form_frame = ctk.CTkScrollableFrame(self.dialog)
-            self.form_frame.pack(fill="both", expand=True, padx=20, pady=(0, 20))
-            
-            # ✅ Enable mouse wheel scroll
-            self._enable_mouse_wheel_scroll()
-            
-            # Tạo các fields
-            self._create_form_fields()
-            
-            # Buttons
-            self._create_buttons()
-            
+            # Modal: Chặn tương tác với cửa sổ chính
+            self.grab_set()
+            self.focus_set()
         except Exception as e:
-            print(f"❌ LỖI trong _create_ui(): {e}")
+            print(f"ERROR in _delayed_init: {e}")
             import traceback
             traceback.print_exc()
-    
-    def _enable_mouse_wheel_scroll(self):
-        """Kích hoạt scroll bằng chuột cho form"""
-        def _on_mousewheel(event):
-            # Linux sử dụng Button-4 (scroll up) và Button-5 (scroll down)
-            if event.num == 4 or event.delta > 0:
-                self.form_frame._parent_canvas.yview_scroll(-1, "units")
-            elif event.num == 5 or event.delta < 0:
-                self.form_frame._parent_canvas.yview_scroll(1, "units")
+            self._on_close()
         
-        # Bind cho dialog window
-        self.dialog.bind_all("<Button-4>", _on_mousewheel, add="+")
-        self.dialog.bind_all("<Button-5>", _on_mousewheel, add="+")
-        self.dialog.bind_all("<MouseWheel>", _on_mousewheel, add="+")  # Windows/Mac
-        
-        # Unbind khi dialog đóng để tránh memory leak
-        def _cleanup():
-            try:
-                self.dialog.unbind_all("<Button-4>")
-                self.dialog.unbind_all("<Button-5>")
-                self.dialog.unbind_all("<MouseWheel>")
-            except:
-                pass
-        
-        self.dialog.protocol("WM_DELETE_WINDOW", lambda: [_cleanup(), self.dialog.destroy()])
-        
+    def _create_ui(self):
+        """Tạo giao diện form nhập liệu KHÔNG dùng CTkScrollableFrame để tránh lỗi font."""
+        # Kiểm tra window còn tồn tại
+        try:
+            if not self.winfo_exists():
+                print("Window không tồn tại, không thể tạo UI")
+                return
+        except:
+            print("Lỗi kiểm tra window existence")
+            return
+            
+        try:
+            # Container chính (Canvas + CTkFrame để tự làm scroll)
+            canvas = tk.Canvas(
+                self,
+                bg=self._apply_appearance_mode(ctk.ThemeManager.theme["CTkFrame"]["fg_color"]),
+                highlightthickness=0
+            )
+            canvas.pack(side="left", fill="both", expand=True, padx=(20, 0), pady=20)
+
+            # Scrollbar
+            scrollbar = ctk.CTkScrollbar(self, command=canvas.yview)
+            scrollbar.pack(side="right", fill="y", padx=(0, 20), pady=20)
+            canvas.configure(yscrollcommand=scrollbar.set)
+
+            # Frame nội dung
+            self.form_container = ctk.CTkFrame(canvas, fg_color="transparent")
+            canvas_window = canvas.create_window((0, 0), window=self.form_container, anchor="nw")
+
+            # Cập nhật scroll region khi resize
+            def _on_frame_configure(event=None):
+                canvas.configure(scrollregion=canvas.bbox("all"))
+                # Đảm bảo form_container rộng bằng canvas
+                canvas_width = canvas.winfo_width()
+                if canvas_width > 1:
+                    canvas.itemconfig(canvas_window, width=canvas_width)
+
+            self.form_container.bind("<Configure>", _on_frame_configure)
+            canvas.bind("<Configure>", _on_frame_configure)
+
+            # Mouse wheel scrolling - Support cho Windows, Linux, Mac
+            def _on_mousewheel(event):
+                canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            
+            def _on_mousewheel_linux(event):
+                if event.num == 4:
+                    canvas.yview_scroll(-1, "units")
+                elif event.num == 5:
+                    canvas.yview_scroll(1, "units")
+
+            # Windows/Mac
+            canvas.bind_all("<MouseWheel>", _on_mousewheel)
+            # Linux
+            canvas.bind_all("<Button-4>", _on_mousewheel_linux)
+            canvas.bind_all("<Button-5>", _on_mousewheel_linux)
+            
+            # Lưu canvas để có thể unbind sau này
+            self.canvas = canvas
+
+            # Tạo các trường nhập liệu
+            self._create_form_fields()
+
+            # Nút hành động
+            self._create_action_buttons()
+            
+            # Force update scroll region sau khi tạo xong UI
+            self.update_idletasks()
+            canvas.configure(scrollregion=canvas.bbox("all"))
+
+        except Exception as e:
+            print(f"ERROR in _create_ui: {e}")
+            import traceback
+            traceback.print_exc()
+
     def _create_form_fields(self):
         """Tạo các trường nhập liệu"""
         is_readonly = self.mode == "view"
         
-        # Mã nhân viên
-        self._create_field(
-            "Mã nhân viên",
-            "employee_code",
-            placeholder="Nhập mã NV (VD: NV001)",
-            required=True,
-            readonly=is_readonly
-        )
+        # Hàm helper để tạo label + entry nhanh
+        # CRITICAL: Dùng tk.Label thay vì CTkLabel để tránh lỗi font
+        def create_entry_field(label, key, placeholder="", required=False):
+            label_text = f"{label}:{' *' if required else ''}"
+            
+            # SỬ DỤNG tk.Label thay vì ctk.CTkLabel
+            label_widget = tk.Label(
+                self.form_container,
+                text=label_text,
+                anchor="w",
+                bg=self._apply_appearance_mode(ctk.ThemeManager.theme["CTkFrame"]["fg_color"]),
+                fg=self._apply_appearance_mode(ctk.ThemeManager.theme["CTkLabel"]["text_color"]),
+                font=("Arial", 12)
+            )
+            label_widget.pack(fill="x", pady=(10, 5), padx=5)
+            
+            default_value = self.employee_data.get(key, "")
+            
+            # CRITICAL: Truyền font tuple để tránh CTkFont() auto-creation
+            entry = ctk.CTkEntry(
+                self.form_container,
+                placeholder_text=placeholder,
+                state="disabled" if is_readonly else "normal",
+                font=("Arial", 12)  # <- Thêm dòng này!
+            )
+            if default_value:
+                entry.insert(0, str(default_value))
+                
+            entry.pack(fill="x", pady=(0, 10), padx=5)
+            # Lưu reference
+            setattr(self, f"{key}_entry", entry)
+
+        # 1. Mã nhân viên
+        create_entry_field("Mã nhân viên", "employee_code", "VD: NV001", required=True)
         
-        # Họ
-        self._create_field(
-            "Họ",
-            "last_name",
-            placeholder="Nguyễn Văn",
-            required=True,
-            readonly=is_readonly
-        )
+        # 2. Họ & Tên
+        create_entry_field("Họ", "last_name", "Nguyễn", required=True)
+        create_entry_field("Tên", "first_name", "Văn A", required=True)
         
-        # Tên
-        self._create_field(
-            "Tên",
-            "first_name",
-            placeholder="A",
-            required=True,
-            readonly=is_readonly
-        )
+        # 3. Giới tính (Radio Buttons)
+        tk.Label(
+            self.form_container,
+            text="Giới tính:",
+            anchor="w",
+            bg=self._apply_appearance_mode(ctk.ThemeManager.theme["CTkFrame"]["fg_color"]),
+            fg=self._apply_appearance_mode(ctk.ThemeManager.theme["CTkLabel"]["text_color"]),
+            font=("Arial", 12)
+        ).pack(fill="x", pady=(10, 5), padx=5)
         
-        # Giới tính
-        ctk.CTkLabel(self.form_frame, text="Giới tính:", anchor="w").pack(fill="x", pady=(10, 5))
-        self.gender_var = ctk.StringVar(value=self.employee_data.get('gender', 'Male'))
-        gender_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
-        gender_frame.pack(fill="x", pady=(0, 10))
+        self.gender_var = ctk.StringVar(master=self, value=self.employee_data.get('gender', 'Male'))
+        gender_frame = ctk.CTkFrame(self.form_container, fg_color="transparent")
+        gender_frame.pack(fill="x", pady=(0, 10), padx=5)
         
         state = "disabled" if is_readonly else "normal"
-        ctk.CTkRadioButton(
-            gender_frame, text="Nam", variable=self.gender_var, 
-            value="Male", state=state
-        ).pack(side="left", padx=10)
-        ctk.CTkRadioButton(
-            gender_frame, text="Nữ", variable=self.gender_var, 
-            value="Female", state=state
-        ).pack(side="left", padx=10)
-        ctk.CTkRadioButton(
-            gender_frame, text="Khác", variable=self.gender_var, 
-            value="Other", state=state
-        ).pack(side="left", padx=10)
+        ctk.CTkRadioButton(gender_frame, text="Nam", variable=self.gender_var, value="Male", state=state, font=("Arial", 12)).pack(side="left", padx=10)
+        ctk.CTkRadioButton(gender_frame, text="Nữ", variable=self.gender_var, value="Female", state=state, font=("Arial", 12)).pack(side="left", padx=10)
+        ctk.CTkRadioButton(gender_frame, text="Khác", variable=self.gender_var, value="Other", state=state, font=("Arial", 12)).pack(side="left", padx=10)
         
-        # Ngày sinh
-        self._create_field(
-            "Ngày sinh",
-            "date_of_birth",
-            placeholder="YYYY-MM-DD (VD: 1990-01-15)",
-            required=True,
-            readonly=is_readonly
+        # 4. Các thông tin khác
+        create_entry_field("Ngày sinh", "date_of_birth", "YYYY-MM-DD", required=True)
+        create_entry_field("Email", "email", "email@example.com", required=True)
+        create_entry_field("Số điện thoại", "phone_number", "090...")
+        create_entry_field("Địa chỉ", "address", "...")
+        create_entry_field("Ngày vào làm", "hire_date", "YYYY-MM-DD", required=True)
+        
+        # 5. Phòng ban (Combobox) - Load từ database
+        tk.Label(
+            self.form_container,
+            text="Phòng ban: *",
+            anchor="w",
+            bg=self._apply_appearance_mode(ctk.ThemeManager.theme["CTkFrame"]["fg_color"]),
+            fg=self._apply_appearance_mode(ctk.ThemeManager.theme["CTkLabel"]["text_color"]),
+            font=("Arial", 12)
+        ).pack(fill="x", pady=(10, 5), padx=5)
+        
+        self._load_departments()  # Load dữ liệu phòng ban
+        
+        dept_names = [name for _, name in self.departments]
+        print(f"📋 Department names for combobox: {dept_names}")
+        
+        self.department_combo = ctk.CTkComboBox(
+            self.form_container,
+            values=dept_names,
+            state="disabled" if is_readonly else "readonly",
+            command=self._on_department_change,
+            font=("Arial", 12),
+            dropdown_font=("Arial", 12)  # CRITICAL: Fix DropdownMenu font error
         )
+        # Set giá trị mặc định
+        current_dept = self.employee_data.get('department', '')
+        print(f"🏢 Current department from employee_data: '{current_dept}'")
+        if current_dept:
+            self.department_combo.set(current_dept)
+        elif self.departments:
+            self.department_combo.set(self.departments[0][1])
+            print(f"✅ Set default department: {self.departments[0][1]}")
+        self.department_combo.pack(fill="x", pady=(0, 10), padx=5)
         
-        # Email
-        self._create_field(
-            "Email",
-            "email",
-            placeholder="email@example.com",
-            required=True,
-            readonly=is_readonly
+        # 6. Chức vụ (Combobox) - Load dựa vào phòng ban đã chọn
+        tk.Label(
+            self.form_container,
+            text="Chức vụ: *",
+            anchor="w",
+            bg=self._apply_appearance_mode(ctk.ThemeManager.theme["CTkFrame"]["fg_color"]),
+            fg=self._apply_appearance_mode(ctk.ThemeManager.theme["CTkLabel"]["text_color"]),
+            font=("Arial", 12)
+        ).pack(fill="x", pady=(10, 5), padx=5)
+        
+        self._load_positions()  # Load dữ liệu chức vụ dựa vào dept đã chọn
+        self.position_combo = ctk.CTkComboBox(
+            self.form_container,
+            values=[name for _, name in self.positions],
+            state="disabled" if is_readonly else "readonly",
+            font=("Arial", 12),
+            dropdown_font=("Arial", 12)  # CRITICAL: Fix DropdownMenu font error
         )
+        current_pos = self.employee_data.get('position', '')
+        if current_pos:
+            self.position_combo.set(current_pos)
+        elif self.positions:
+            self.position_combo.set(self.positions[0][1])
+        self.position_combo.pack(fill="x", pady=(0, 10), padx=5)
         
-        # Số điện thoại
-        self._create_field(
-            "Số điện thoại",
-            "phone_number",
-            placeholder="0901234567",
-            readonly=is_readonly
+        # 7. Trạng thái (Combobox)
+        tk.Label(
+            self.form_container,
+            text="Trạng thái:",
+            anchor="w",
+            bg=self._apply_appearance_mode(ctk.ThemeManager.theme["CTkFrame"]["fg_color"]),
+            fg=self._apply_appearance_mode(ctk.ThemeManager.theme["CTkLabel"]["text_color"]),
+            font=("Arial", 12)
+        ).pack(fill="x", pady=(10, 5), padx=5)
+        
+        self.status_combo = ctk.CTkComboBox(
+            self.form_container,
+            values=["Probation", "Active", "Resigned"],
+            state="disabled" if is_readonly else "readonly",
+            font=("Arial", 12),
+            dropdown_font=("Arial", 12)  # CRITICAL: Fix DropdownMenu font error
         )
-        
-        # Địa chỉ
-        self._create_field(
-            "Địa chỉ",
-            "address",
-            placeholder="Nhập địa chỉ",
-            readonly=is_readonly
-        )
-        
-        # Ngày vào làm
-        self._create_field(
-            "Ngày vào làm",
-            "hire_date",
-            placeholder="YYYY-MM-DD (VD: 2024-01-01)",
-            required=True,
-            readonly=is_readonly
-        )
-        
-        # Phòng ban
-        if self.mode == "add":
-            # Khi thêm mới: lấy phòng ban của manager
-            user_dept = self.auth_controller.current_user_data.get('department_name', 'Chưa xác định')
-            ctk.CTkLabel(self.form_frame, text="Phòng ban:", anchor="w").pack(fill="x", pady=(10, 5))
-            dept_label = ctk.CTkLabel(
-                self.form_frame,
-                text=f"  {user_dept}",
-                anchor="w",
-                fg_color="#2C3E50",
-                corner_radius=5,
-                height=35
-            )
-            dept_label.pack(fill="x", pady=(0, 10))
-        else:
-            # Khi view/edit: hiển thị phòng ban hiện tại
-            dept_name = self.employee_data.get('department_name', 'Chưa xác định')
-            self._create_field(
-                "Phòng ban",
-                "department_name",
-                default_value=dept_name,
-                readonly=True  # Không cho sửa phòng ban
-            )
-        
-        # Chức vụ - Load từ database
-        ctk.CTkLabel(self.form_frame, text="Chức vụ:", anchor="w").pack(fill="x", pady=(10, 5))
-        
-        # Lấy danh sách positions từ database
-        positions_list = []
-        self.positions_map = {}  # Khởi tạo trước
-        
+        current_status = self.employee_data.get('status', 'Active')
+        self.status_combo.set(current_status)
+        self.status_combo.pack(fill="x", pady=(0, 10), padx=5)
+
+    def _load_departments(self):
+        """Load danh sách phòng ban từ database"""
         try:
-            from app.database.employee_queries import EmployeeQueries
-            emp_queries = EmployeeQueries()
-            positions_data = emp_queries.get_all_positions()
-            
-            print(f"🔍 DEBUG: Loaded {len(positions_data) if positions_data else 0} positions from DB")
-            
-            # Tạo dict để map id -> title và list values cho combo
-            for pos in positions_data:
-                pos_id = pos.get('id')
-                pos_title = pos.get('title')
-                dept_name = pos.get('department_name', '')
-                
-                # Format: "Employee (IT Department)"
-                display_text = f"{pos_title} ({dept_name})"
-                positions_list.append(display_text)
-                self.positions_map[pos_id] = display_text
-                print(f"🔍 DEBUG: Mapped {pos_id} -> {display_text}")
-            
-            if not positions_list:
-                print("⚠️ DEBUG: positions_list trống, dùng fallback")
-                positions_list = ["Employee", "Senior Employee", "Team Lead"]
-            else:
-                print(f"✅ DEBUG: Loaded {len(positions_list)} positions successfully")
-                
+            self.departments = self.employee_controller.get_all_departments_for_view()
+            print(f"✅ Loaded {len(self.departments)} departments: {self.departments}")
         except Exception as e:
-            print(f"❌ ERROR: Không load được positions từ DB: {e}")
+            print(f"❌ ERROR loading departments: {e}")
             import traceback
             traceback.print_exc()
-            positions_list = ["Employee", "Senior Employee", "Team Lead", "Manager", "Director"]
-            self.positions_map = {}
-        
-        self.position_combo = ctk.CTkComboBox(
-            self.form_frame,
-            values=positions_list,
-            state="disabled" if is_readonly else "readonly"
-        )
-        
-        # Set giá trị hiện tại
-        if self.mode in ["edit", "view"] and self.employee_data:
-            # Lấy position_id từ employee_data
-            pos_id = self.employee_data.get('position_id')
-            if pos_id and pos_id in self.positions_map:
-                self.position_combo.set(self.positions_map[pos_id])
+            self.departments = []
+
+    def _load_positions(self):
+        """Load danh sách chức vụ dựa vào phòng ban đang chọn"""
+        try:
+            # Lấy department_id từ department đã chọn
+            selected_dept_name = self.department_combo.get()
+            dept_id = None
+            for did, dname in self.departments:
+                if dname == selected_dept_name:
+                    dept_id = did
+                    break
+            
+            print(f"🔍 Loading positions for dept: '{selected_dept_name}' (ID: {dept_id})")
+            
+            if dept_id:
+                self.positions = self.employee_controller.get_positions_by_department_id_for_view(dept_id)
+                print(f"✅ Loaded {len(self.positions)} positions: {self.positions}")
             else:
-                # Fallback: dùng position_title từ query
-                pos_title = self.employee_data.get('position_title', '')
-                dept_name = self.employee_data.get('department_name', '')
-                if pos_title:
-                    display = f"{pos_title} ({dept_name})" if dept_name else pos_title
-                    self.position_combo.set(display)
-                else:
-                    self.position_combo.set(positions_list[0] if positions_list else "Employee")
-        else:
-            # Mode add: set default
-            self.position_combo.set(positions_list[0] if positions_list else "Employee")
-            
-        self.position_combo.pack(fill="x", pady=(0, 10))
+                print(f"⚠️ No dept_id found for '{selected_dept_name}'")
+                self.positions = []
+        except Exception as e:
+            print(f"❌ ERROR loading positions: {e}")
+            import traceback
+            traceback.print_exc()
+            self.positions = []
+
+    def _on_department_change(self, selected_dept_name):
+        """Callback khi thay đổi phòng ban - cập nhật danh sách chức vụ"""
+        self._load_positions()
+        # Cập nhật combobox chức vụ
+        self.position_combo.configure(values=[name for _, name in self.positions])
+        if self.positions:
+            self.position_combo.set(self.positions[0][1])
+
+    def _create_action_buttons(self):
+        """Tạo các nút hành động"""
+        buttons_frame = ctk.CTkFrame(self, fg_color="transparent")
+        buttons_frame.pack(fill="x", padx=20, pady=(10, 20))
         
-        # Trạng thái
-        ctk.CTkLabel(self.form_frame, text="Trạng thái:", anchor="w").pack(fill="x", pady=(10, 5))
-        statuses = ["Thử việc", "Đang làm việc", "Đã nghỉ việc"]
-        self.status_combo = ctk.CTkComboBox(
-            self.form_frame,
-            values=statuses,
-            state="readonly" if is_readonly else "readonly"
-        )
-        current_status = self.employee_data.get('status', 'Thử việc')
-        self.status_combo.set(current_status if current_status in statuses else "Thử việc")
-        self.status_combo.pack(fill="x", pady=(0, 10))
-        
-    def _create_field(
-        self, 
-        label: str, 
-        field_name: str, 
-        placeholder: str = "", 
-        required: bool = False,
-        readonly: bool = False,
-        default_value: str = None
-    ):
-        """Tạo một field input"""
-        label_text = f"{label}:{' *' if required else ''}"
-        ctk.CTkLabel(self.form_frame, text=label_text, anchor="w").pack(fill="x", pady=(10, 5))
-        
-        # Lấy giá trị mặc định từ employee_data nếu có
-        if default_value is None:
-            default_value = self.employee_data.get(field_name, "")
-        
-        entry = ctk.CTkEntry(
-            self.form_frame,
-            placeholder_text=placeholder,
-            state="disabled" if readonly else "normal"
-        )
-        
-        if default_value:
-            entry.insert(0, str(default_value))
-            
-        entry.pack(fill="x", pady=(0, 10))
-        
-        # Lưu reference để lấy giá trị sau
-        setattr(self, f"{field_name}_entry", entry)
-        
-    def _create_buttons(self):
-        """Tạo các nút bấm"""
-        buttons_frame = ctk.CTkFrame(self.dialog, fg_color="transparent")
-        buttons_frame.pack(fill="x", padx=20, pady=(0, 20))
-        
-        if self.mode == "view":
-            # Chỉ có nút Đóng
-            close_btn = ctk.CTkButton(
-                buttons_frame,
-                text="✕ Đóng",
-                command=self.dialog.destroy,
-                fg_color="#95A5A6",
-                hover_color="#7F8C8D",
-                width=150,
-                height=40
-            )
-            close_btn.pack(pady=10)
-        else:
-            # Có nút Lưu và Hủy
+        if self.mode != "view":
             save_btn = ctk.CTkButton(
                 buttons_frame,
                 text="💾 Lưu",
@@ -382,182 +377,143 @@ class EmployeeFormDialog:
                 fg_color="#27AE60",
                 hover_color="#229954",
                 width=150,
-                height=40
+                height=40,
+                font=("Arial", 12)
             )
             save_btn.pack(side="left", padx=(0, 10))
             
             cancel_btn = ctk.CTkButton(
                 buttons_frame,
                 text="✕ Hủy",
-                command=self.dialog.destroy,
+                command=self._on_close,
                 fg_color="#95A5A6",
                 hover_color="#7F8C8D",
                 width=150,
-                height=40
+                height=40,
+                font=("Arial", 12)
             )
             cancel_btn.pack(side="left")
+        else:
+            close_btn = ctk.CTkButton(
+                buttons_frame,
+                text="✕ Đóng",
+                command=self._on_close,
+                fg_color="#95A5A6",
+                hover_color="#7F8C8D",
+                width=150,
+                height=40,
+                font=("Arial", 12)
+            )
+            close_btn.pack(pady=10)
             
-        # Focus vào field đầu tiên nếu không phải view mode
-        if self.mode != "view" and hasattr(self, 'employee_code_entry'):
-            self.employee_code_entry.focus()
-            
-    def _validate_email(self, email: str) -> bool:
-        """Validate email format"""
-        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        return re.match(pattern, email) is not None
-    
-    def _validate_date(self, date_str: str) -> bool:
-        """Validate date format YYYY-MM-DD"""
-        pattern = r'^\d{4}-\d{2}-\d{2}$'
-        return re.match(pattern, date_str) is not None
-    
-    def _validate_phone(self, phone: str) -> bool:
-        """Validate phone number (optional, Vietnamese format)"""
-        if not phone:
-            return True  # Phone is optional
-        pattern = r'^(0|\+84)[0-9]{9,10}$'
-        return re.match(pattern, phone) is not None
-    
+    def _validate_data(self, data):
+        """Kiểm tra dữ liệu"""
+        if not data["employee_code"] or not data["first_name"] or not data["last_name"]:
+            return False, "Vui lòng nhập đầy đủ Mã NV và Họ Tên."
+        # Thêm các validate khác (ngày tháng, email...) nếu cần
+        return True, ""
+
     def _save(self):
         """Lưu dữ liệu"""
-        # Lấy dữ liệu từ form
-        employee_code = self.employee_code_entry.get().strip()
-        first_name = self.first_name_entry.get().strip()
-        last_name = self.last_name_entry.get().strip()
-        email = self.email_entry.get().strip()
-        dob = self.date_of_birth_entry.get().strip()
-        hire_date = self.hire_date_entry.get().strip()
-        phone = self.phone_number_entry.get().strip()
-        address = self.address_entry.get().strip()
-        
-        # Validate required fields
-        if not all([employee_code, first_name, last_name, email, dob, hire_date]):
-            messagebox.showerror(
-                "Lỗi",
-                "Vui lòng điền đầy đủ các trường bắt buộc (*)",
-                parent=self.dialog
-            )
-            return
-        
-        # Validate email
-        if not self._validate_email(email):
-            messagebox.showerror(
-                "Lỗi",
-                "Email không hợp lệ!",
-                parent=self.dialog
-            )
-            return
-        
-        # Validate dates
-        if not self._validate_date(dob):
-            messagebox.showerror(
-                "Lỗi",
-                "Ngày sinh không hợp lệ! Định dạng: YYYY-MM-DD",
-                parent=self.dialog
-            )
-            return
-            
-        if not self._validate_date(hire_date):
-            messagebox.showerror(
-                "Lỗi",
-                "Ngày vào làm không hợp lệ! Định dạng: YYYY-MM-DD",
-                parent=self.dialog
-            )
-            return
-        
-        # Validate phone (optional)
-        if phone and not self._validate_phone(phone):
-            messagebox.showerror(
-                "Lỗi",
-                "Số điện thoại không hợp lệ!",
-                parent=self.dialog
-            )
-            return
-        
-        # Tạo data dict
-        employee_data = {
-            'employee_code': employee_code,
-            'first_name': first_name,
-            'last_name': last_name,
-            'gender': self.gender_var.get(),
-            'date_of_birth': dob,
-            'email': email,
-            'phone_number': phone,
-            'address': address,
-            'hire_date': hire_date,
-            'status': self.status_combo.get(),
-        }
-        
-        # Map position_id từ combo selection
-        selected_position_display = self.position_combo.get()
-        position_id = None
-        
-        # Tìm position_id từ display text
-        for pid, display_text in self.positions_map.items():
-            if display_text == selected_position_display:
-                position_id = pid
-                break
-        
-        # Nếu không tìm thấy trong map, thử fallback
-        if position_id is None:
-            print(f"⚠️ Không tìm thấy position_id cho: {selected_position_display}")
-            # Fallback: lấy position đầu tiên hoặc mặc định
-            if self.positions_map:
-                position_id = list(self.positions_map.keys())[0]
-            else:
-                position_id = 1  # Default fallback
-        
-        employee_data['position_id'] = position_id
-        
-        # Thêm các trường khác tùy theo mode
-        if self.mode == "add":
-            employee_data['department_id'] = self.auth_controller.current_user_data.get('department_id')
-            employee_data['manager_id'] = self.auth_controller.current_user_data.get('employee_id')
-        elif self.mode == "edit":
-            employee_data['employee_id'] = self.employee_data.get('employee_id')
-            # Giữ nguyên department_id và manager_id
-        
-        # Hiển thị loading
-        loading = LoadingOverlay(self.dialog, message="Đang lưu thông tin...")
-        loading.show()
-        
-        # Xử lý sau 200ms để UI render
-        self.dialog.after(200, lambda: self._process_save(employee_data, loading))
-    
-    def _process_save(self, employee_data: dict, loading: LoadingOverlay):
-        """Xử lý lưu dữ liệu thực tế"""
         try:
-            if self.mode == "add":
-                message = self.employee_controller.add_employee(employee_data)
-            elif self.mode == "edit":
-                message = self.employee_controller.update_employee(employee_data)
-            else:
-                loading.hide()
+            # Thu thập dữ liệu
+            data = {
+                "employee_code": self.employee_code_entry.get().strip(),
+                "first_name": self.first_name_entry.get().strip(),
+                "last_name": self.last_name_entry.get().strip(),
+                "gender": self.gender_var.get(),
+                "date_of_birth": self.date_of_birth_entry.get().strip(),
+                "email": self.email_entry.get().strip(),
+                "phone_number": self.phone_number_entry.get().strip(),
+                "address": self.address_entry.get().strip(),
+                "hire_date": self.hire_date_entry.get().strip(),
+                "status": self.status_combo.get()
+            }
+            
+            # Validate
+            is_valid, error_msg = self._validate_data(data)
+            if not is_valid:
+                messagebox.showerror("Lỗi", error_msg, parent=self)
                 return
+
+            # Lấy department_id và position_id từ combobox
+            selected_dept_name = self.department_combo.get()
+            dept_id = None
+            for did, dname in self.departments:
+                if dname == selected_dept_name:
+                    dept_id = did
+                    break
             
-            # Cập nhật loading message
-            loading.update_message("Lưu thành công!")
+            selected_pos_name = self.position_combo.get()
+            pos_id = None
+            for pid, pname in self.positions:
+                if pname == selected_pos_name:
+                    pos_id = pid
+                    break
+
+            data['department_id'] = dept_id if dept_id else 1
+            data['position_id'] = pos_id if pos_id else 1
+
+            # Gọi Controller
+            if self.mode == "add":
+                message = self.employee_controller.add_employee(data)
+            elif self.mode == "edit":
+                message = self.employee_controller.update_employee(self.employee_data.get('id'), data)
+            else:
+                return
+
+            messagebox.showinfo("Thành công", message, parent=self)
             
-            # Delay 1000ms (1 giây) để hiển thị success
-            self.dialog.after(1000, lambda: self._complete_save(loading, message))
+            # Refresh list bên ngoài
+            if self.on_success:
+                self.on_success()
+            
+            self._on_close()
             
         except Exception as e:
-            loading.hide()
-            messagebox.showerror(
-                "Lỗi",
-                f"Không thể lưu thông tin:\n{str(e)}",
-                parent=self.dialog
-            )
-    
-    def _complete_save(self, loading: LoadingOverlay, message: str):
-        """Hoàn tất quá trình lưu"""
-        loading.hide()
-        messagebox.showinfo("Thành công", message, parent=self.dialog)
-        
-        # Gọi callback để refresh data
-        if self.on_success:
-            self.on_success()
-        
-        # Đóng dialog
-        self.dialog.destroy()
+            messagebox.showerror("Lỗi", f"Không thể lưu: {str(e)}", parent=self)
+            print(f"Error saving: {e}")
 
+    def _on_close(self):
+        """Đóng dialog và giải phóng grab một cách an toàn"""
+        try:
+            # Unbind mouse wheel events
+            if hasattr(self, 'canvas'):
+                self.unbind_all("<MouseWheel>")
+                self.unbind_all("<Button-4>")
+                self.unbind_all("<Button-5>")
+        except:
+            pass
+            
+        try:
+            # Giải phóng grab nếu có
+            self.grab_release()
+        except:
+            pass
+        
+        try:
+            # Withdraw trước để ẩn window
+            self.withdraw()
+        except:
+            pass
+        
+        # Delay destroy để tránh lỗi AttributeError với widgets chưa init xong
+        try:
+            self.after(50, self._safe_destroy)
+        except:
+            # Nếu after fail, destroy trực tiếp
+            self._safe_destroy()
+    
+    def _safe_destroy(self):
+        """Destroy an toàn, bỏ qua mọi lỗi"""
+        try:
+            self.destroy()
+        except Exception as e:
+            # Bỏ qua tất cả lỗi khi destroy (AttributeError, etc.)
+            print(f"Warning: Error during destroy (ignored): {e}")
+            # Force quit bằng cách destroy parent reference
+            try:
+                import tkinter
+                tkinter.Toplevel.destroy(self)
+            except:
+                pass

@@ -92,3 +92,39 @@ class AuthQueries:
         except Exception as e:
             print(f"Lỗi khi băm mật khẩu: {e}")
             return False
+    
+    def hash_password(self, plain_password: str) -> str:
+        """
+        Băm mật khẩu bằng SHA-256.
+        """
+        password_bytes = plain_password.encode('utf-8')
+        return hashlib.sha256(password_bytes).hexdigest()
+    
+    def update_user_password(self, user_id: int, new_password_hash: str) -> bool:
+        """
+        Cập nhật mật khẩu cho user trong database.
+        """
+        conn = None
+        try:
+            conn = create_connection()
+            cursor = conn.cursor()
+            query = """
+                UPDATE users 
+                SET password_hash = %s 
+                WHERE id = %s
+            """
+            cursor.execute(query, (new_password_hash, user_id))
+            conn.commit()
+            
+            affected = cursor.rowcount
+            print(f"✅ Đã cập nhật mật khẩu cho user ID {user_id}")
+            return affected > 0
+        except Exception as e:
+            print(f"❌ Lỗi khi cập nhật mật khẩu: {e}")
+            if conn:
+                conn.rollback()
+            return False
+        finally:
+            if conn and conn.is_connected():
+                cursor.close()
+                conn.close()

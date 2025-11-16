@@ -9,17 +9,16 @@ from typing import Optional
 
 
 class LoadingOverlay:
-    """
-    Component hiển thị loading animation với overlay tối màu
+    #Component hiển thị loading animation với overlay tối màu
     
-    Usage:
-        # Hiển thị loading
-        loading = LoadingOverlay(parent_window)
-        loading.show()
+    # Usage:
+    #     # Hiển thị loading
+    #     loading = LoadingOverlay(parent_window)
+    #     loading.show()
         
-        # Ẩn loading sau khi xong
-        loading.hide()
-    """
+    #     # Ẩn loading sau khi xong
+    #     loading.hide()
+    
     
     def __init__(self, parent: ctk.CTk, message: str = "Đang xử lý..."):
         """
@@ -28,7 +27,7 @@ class LoadingOverlay:
             message: Text hiển thị dưới GIF
         """
         self.parent = parent
-        self.message = message
+        self.message = message  # Lưu message
         
         # Overlay frame (tối màu)
         self.overlay = None
@@ -85,7 +84,7 @@ class LoadingOverlay:
             screen_height = self.parent.winfo_screenheight()
             
             # FORCE GIF size = 90% kích thước màn hình (rất lớn)
-            gif_size = int(min(screen_width, screen_height) * 0.9)
+            gif_size = int(min(screen_width, screen_height) * 0.9   )
 
             print(f"📐 Scaling GIF to {gif_size}x{gif_size}px (Screen: {screen_width}x{screen_height})")
             
@@ -106,17 +105,16 @@ class LoadingOverlay:
             # Bắt đầu animation
             self._animate()
         
-        # # Label hiển thị text - ĐÈ LÊN TRÊN GIF Ở PHÍA DƯỚI
-        # self.text_label = ctk.CTkLabel(
-        #     self.overlay,
-        #     text=self.message,
-        #     font=ctk.CTkFont(size=40, weight="bold"),  # Font RẤT LỚN
-        #     text_color=("#0A3871", "white")
-        #     # Không dùng rgba vì CustomTkinter không hỗ trợ
-        # )
-        # # Đặt text ở PHÍA DƯỚI GIF (70% từ trên xuống)
-        # self.text_label.place(relx=0.5, rely=0.75, anchor="center")
-        
+        # Label hiển thị text - ĐÈ LÊN TRÊN GIF Ở PHÍA DƯỚI
+        self.text_label = ctk.CTkLabel(
+            self.overlay,
+            text=self.message,
+            font=("Arial", 40, "bold"),  # Dùng tuple font
+            text_color=("#0A3871", "white")
+        )
+        # Đặt text ở PHÍA DƯỚI GIF (75% từ trên xuống)
+        self.text_label.place(relx=0.5, rely=0.75, anchor="center")
+      
         # Đưa overlay lên top
         self.overlay.lift()
     
@@ -150,16 +148,14 @@ class LoadingOverlay:
         
         # Chuyển sang frame tiếp theo
         self.current_frame = (self.current_frame + 1) % len(self.gif_frames)
-        
-        # Schedule frame tiếp theo (50ms = ~20 FPS)
-        self.animation_job = self.parent.after(50, self._animate)
-    
+
+        # Schedule frame tiếp theo (20ms = ~50 FPS)
+        self.animation_job = self.parent.after(20, self._animate)
     def update_message(self, new_message: str):
         """Cập nhật text message"""
         self.message = new_message
         if self.text_label:
             self.text_label.configure(text=new_message)
-
 
 # Utility function để sử dụng nhanh
 def show_loading(parent: ctk.CTk, message: str = "Đang xử lý...") -> LoadingOverlay:

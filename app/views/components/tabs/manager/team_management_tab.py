@@ -115,7 +115,7 @@ class TeamManagementTab(BaseTab):
             label = ctk.CTkLabel(
                 header_frame,
                 text=text,
-                font=ctk.CTkFont(size=12, weight="bold"),
+                font=("Arial", 12, "bold"),
                 text_color="white"
             )
             label.place(relx=x_pos, rely=0.5, anchor="w", relwidth=width)
@@ -123,33 +123,51 @@ class TeamManagementTab(BaseTab):
     
     def fetch_data(self):
         """Load danh sách nhân viên trong phòng"""
+        print("🔄 [REFRESH] Button clicked - Starting fetch_data...")
+        
         # Clear existing
-        for widget in self.scrollable_frame.winfo_children()[1:]:
-            widget.destroy()
+        try:
+            widgets_to_destroy = self.scrollable_frame.winfo_children()[1:]
+            print(f"🗑️ Clearing {len(widgets_to_destroy)} existing widgets...")
+            for widget in widgets_to_destroy:
+                widget.destroy()
+        except Exception as e:
+            print(f"⚠️ Error clearing widgets: {e}")
         
         try:
             # Fetch team members - CHỈ LẤY NHÂN VIÊN THUỘC TEAM CỦA MANAGER
+            print("📡 Calling employee_controller.get_all_employees_for_view()...")
             employees = self.employee_controller.get_all_employees_for_view()
+            print(f"✅ Received {len(employees)} employees from controller")
             
             if not employees:
+                print("⚠️ No employees found - showing 'no data' message")
                 no_data = ctk.CTkLabel(
                     self.scrollable_frame,
                     text="Chưa có nhân viên trong phòng",
-                    font=ctk.CTkFont(size=14),
+                    font=("Arial", 14),
                     text_color="gray"
                 )
                 no_data.pack(pady=50)
                 return
             
+            print(f"📋 Displaying {len(employees)} employee rows...")
             # Display rows
             for idx, emp in enumerate(employees):
+                print(f"  Row {idx+1}: ID={emp.get('id')}, Name={emp.get('first_name')} {emp.get('last_name')}")
                 self._create_employee_row(emp, idx)
+            
+            print(f"✅ [REFRESH] Successfully displayed {len(employees)} employees!")
+            
         except Exception as e:
-            print(f"Lỗi khi load dữ liệu: {e}")
+            print(f"❌ [ERROR] Lỗi khi load dữ liệu: {e}")
+            import traceback
+            traceback.print_exc()
+            
             error_label = ctk.CTkLabel(
                 self.scrollable_frame,
-                text=f"Lỗi: {str(e)}",
-                font=ctk.CTkFont(size=14),
+                text=f"❌ Lỗi: {str(e)}",
+                font=("Arial", 14),
                 text_color="red"
             )
             error_label.pack(pady=50)
@@ -182,7 +200,7 @@ class TeamManagementTab(BaseTab):
             label = ctk.CTkLabel(
                 row_frame,
                 text=str(text),
-                font=ctk.CTkFont(size=12),
+                font=("Arial", 12),
                 text_color="#FFFFFF",  # Màu trắng để dễ đọc
                 anchor="w"
             )
@@ -205,7 +223,7 @@ class TeamManagementTab(BaseTab):
             height=28,
             command=lambda e=employee: self.view_employee(e),
             fg_color="#3498DB",
-            font=ctk.CTkFont(size=12)
+            font=("Arial", 12)
         )
         view_btn.pack(side="left", padx=2)
         
@@ -221,7 +239,7 @@ class TeamManagementTab(BaseTab):
                 height=28,
                 command=lambda e=employee: self.edit_employee(e),
                 fg_color="#F39C12",
-                font=ctk.CTkFont(size=12)
+                font=("Arial", 12)
             )
             edit_btn.pack(side="left", padx=2)
     
@@ -251,7 +269,7 @@ class TeamManagementTab(BaseTab):
                 no_data = ctk.CTkLabel(
                     self.scrollable_frame,
                     text=f"Không tìm thấy: '{keyword}'",
-                    font=ctk.CTkFont(size=14),
+                    font=("Arial", 14),
                     text_color="gray"
                 )
                 no_data.pack(pady=50)
@@ -264,7 +282,7 @@ class TeamManagementTab(BaseTab):
             error_label = ctk.CTkLabel(
                 self.scrollable_frame,
                 text=f"Lỗi: {str(e)}",
-                font=ctk.CTkFont(size=14),
+                font=("Arial", 14),
                 text_color="red"
             )
             error_label.pack(pady=50)

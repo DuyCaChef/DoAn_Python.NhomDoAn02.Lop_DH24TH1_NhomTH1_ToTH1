@@ -97,3 +97,52 @@ class AuthController:
         """Đăng xuất - xóa thông tin user hiện tại"""
         self.current_user_data = None
         print("Đã đăng xuất thành công.")
+    
+    def change_password(self, old_password: str, new_password: str) -> bool:
+        """
+        Đổi mật khẩu cho user hiện tại.
+        
+        Args:
+            old_password: Mật khẩu cũ
+            new_password: Mật khẩu mới
+            
+        Returns:
+            True nếu đổi thành công, False nếu thất bại
+            
+        Raises:
+            ValueError: Nếu có lỗi validation
+        """
+        if not self.current_user_data:
+            raise ValueError("Bạn chưa đăng nhập!")
+        
+        # Validate input
+        if not old_password or not new_password:
+            raise ValueError("Vui lòng nhập đầy đủ mật khẩu cũ và mật khẩu mới!")
+        
+        if len(new_password) < 6:
+            raise ValueError("Mật khẩu mới phải có ít nhất 6 ký tự!")
+        
+        if old_password == new_password:
+            raise ValueError("Mật khẩu mới không được trùng với mật khẩu cũ!")
+        
+        # Kiểm tra mật khẩu cũ
+        stored_hash = self.current_user_data.get('password_hash')
+        if not self.db.check_password(old_password, stored_hash):
+            raise ValueError("Mật khẩu cũ không đúng!")
+        
+        # Hash mật khẩu mới
+        new_password_hash = self.db.hash_password(new_password)
+        
+        # Cập nhật vào database
+        user_id = self.current_user_data.get('id')
+        success = self.db.update_user_password(user_id, new_password_hash)
+        
+        if success:
+            # Cập nhật lại current_user_data
+            self.current_user_data['password_hash'] = new_password_hash
+            print(f"✅ Đổi mật khẩu thành công cho user ID {user_id}")
+            return True
+        else:
+            raise ValueError("Có lỗi xảy ra khi cập nhật mật khẩu!")
+        
+        return False
