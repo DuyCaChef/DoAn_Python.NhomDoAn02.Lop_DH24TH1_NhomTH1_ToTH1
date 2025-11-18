@@ -118,12 +118,13 @@ class EmployeeManagementTab(BaseTab):
         
         headers = [
             ("Mã NV", 0.08),
-            ("Họ và tên", 0.15),
-            ("Email", 0.15),
-            ("SĐT", 0.10),
-            ("Phòng ban", 0.12),
-            ("Chức vụ", 0.12),
-            ("Trạng thái", 0.10),
+            ("Họ và tên", 0.13),
+            ("Email", 0.13),
+            ("SĐT", 0.09),
+            ("Phòng ban", 0.10),
+            ("Chức vụ", 0.10),
+            ("Lương", 0.10),
+            ("Trạng thái", 0.09),
             ("Thao tác", 0.18)
         ]
         
@@ -185,14 +186,19 @@ class EmployeeManagementTab(BaseTab):
         row_frame.pack_propagate(False)
         
         # Data cells
+        # Format salary
+        salary = employee.get('salary', 0) or 0
+        salary_formatted = f"{salary:,.0f}" if salary else "0"
+        
         data = [
             (str(employee.get('employee_id', '')), 0.08),
-            (f"{employee.get('first_name', '')} {employee.get('last_name', '')}", 0.15),
-            (employee.get('email', ''), 0.15),
-            (employee.get('phone', '') or employee.get('phone_number', ''), 0.10),
-            (employee.get('department_name', ''), 0.12),
-            (employee.get('position_title', ''), 0.12),  # ✅ FIX: đổi từ 'role_name' sang 'position_title'
-            (employee.get('employment_status', '') or employee.get('status', ''), 0.10)
+            (f"{employee.get('first_name', '')} {employee.get('last_name', '')}", 0.13),
+            (employee.get('email', ''), 0.13),
+            (employee.get('phone', '') or employee.get('phone_number', ''), 0.09),
+            (employee.get('department_name', ''), 0.10),
+            (employee.get('position_title', ''), 0.10),
+            (salary_formatted, 0.10),
+            (employee.get('employment_status', '') or employee.get('status', ''), 0.09)
         ]
         
         x_pos = 0
@@ -320,6 +326,10 @@ class EmployeeManagementTab(BaseTab):
     
     def view_employee(self, employee):
         """Xem chi tiết nhân viên"""
+        print(f"\n🔍 view_employee called with data:")
+        print(f"   Employee dict: {employee}")
+        print(f"   Keys: {list(employee.keys()) if employee else 'None'}\n")
+        
         EmployeeFormDialog(
             parent=self.container,
             employee_controller=self.employee_controller,

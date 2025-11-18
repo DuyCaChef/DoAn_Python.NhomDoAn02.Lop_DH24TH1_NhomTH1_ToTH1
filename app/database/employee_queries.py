@@ -48,6 +48,7 @@ class EmployeeQueries:
             e.gender,
             e.date_of_birth,
             e.email,
+            e.salary,
             e.phone_number,
             e.address,
             e.hire_date,
@@ -56,12 +57,10 @@ class EmployeeQueries:
             e.position_id,
             e.manager_id,
             d.name as department_name, 
-            p.title as position_title,
-            COALESCE(c.base_salary, 0) as base_salary
+            p.title as position_title
         FROM employees e
         LEFT JOIN departments d ON e.department_id = d.id
         LEFT JOIN positions p ON e.position_id = p.id
-        LEFT JOIN contracts c ON e.id = c.employee_id
         ORDER BY e.id
         """
         return self._execute_query(query, fetch_all=True)
@@ -77,6 +76,7 @@ class EmployeeQueries:
             e.gender,
             e.date_of_birth,
             e.email,
+            e.salary,
             e.phone_number,
             e.address,
             e.hire_date,
@@ -85,12 +85,10 @@ class EmployeeQueries:
             e.position_id,
             e.manager_id,
             d.name as department_name, 
-            p.title as position_title,
-            COALESCE(c.base_salary, 0) as base_salary
+            p.title as position_title
         FROM employees e
         LEFT JOIN departments d ON e.department_id = d.id
         LEFT JOIN positions p ON e.position_id = p.id
-        LEFT JOIN contracts c ON e.id = c.employee_id
         WHERE e.id = %s
         """
         return self._execute_query(query, params=(emp_id,), fetch_one=True)
@@ -106,6 +104,7 @@ class EmployeeQueries:
             e.gender,
             e.date_of_birth,
             e.email,
+            e.salary,
             e.phone_number,
             e.address,
             e.hire_date,
@@ -114,12 +113,10 @@ class EmployeeQueries:
             e.position_id,
             e.manager_id,
             d.name as department_name, 
-            p.title as position_title,
-            COALESCE(c.base_salary, 0) as base_salary
+            p.title as position_title
         FROM employees e
         LEFT JOIN departments d ON e.department_id = d.id
         LEFT JOIN positions p ON e.position_id = p.id
-        LEFT JOIN contracts c ON e.id = c.employee_id
         WHERE e.manager_id = %s
         ORDER BY e.id
         """

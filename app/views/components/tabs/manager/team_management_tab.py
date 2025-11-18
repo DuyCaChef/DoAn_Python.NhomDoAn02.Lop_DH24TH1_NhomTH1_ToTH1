@@ -96,30 +96,31 @@ class TeamManagementTab(BaseTab):
         self._create_table_header()
     
     def _create_table_header(self):
-        """Tạo header bảng"""
+        """Tạo header cho bảng"""
         header_frame = ctk.CTkFrame(self.scrollable_frame, fg_color="#2C3E50", height=40)
         header_frame.pack(fill="x", pady=(0, 2))
         header_frame.pack_propagate(False)
         
         headers = [
             ("Mã NV", 0.10),
-            ("Họ và tên", 0.20),
-            ("Email", 0.20),
-            ("SĐT", 0.15),
-            ("Chức vụ", 0.15),
-            ("Thao tác", 0.20)
+            ("Họ và tên", 0.15),
+            ("Email", 0.15),
+            ("SĐT", 0.10),
+            ("Chức vụ", 0.12),
+            ("Lương", 0.10),
+            ("Trạng thái", 0.10),
+            ("Thao tác", 0.18)
         ]
         
-        x_pos = 0
         for text, width in headers:
             label = ctk.CTkLabel(
                 header_frame,
                 text=text,
-                font=("Arial", 12, "bold"),
+                font=ctk.CTkFont(size=12, weight="bold"),
                 text_color="white"
             )
-            label.place(relx=x_pos, rely=0.5, anchor="w", relwidth=width)
-            x_pos += width
+            label.place(relx=sum(h[1] for h in headers[:headers.index((text, width))]), 
+                       rely=0.5, anchor="w", relwidth=width)
     
     def fetch_data(self):
         """Load danh sách nhân viên trong phòng"""
@@ -186,13 +187,19 @@ class TeamManagementTab(BaseTab):
         row_frame.pack(fill="x", pady=1)
         row_frame.pack_propagate(False)
         
+        # Format salary
+        salary = employee.get('salary', 0) or 0
+        salary_formatted = f"{salary:,.0f}" if salary else "0"
+        
         # Data
         data = [
             (str(employee.get('employee_id', '') or employee.get('id', '')), 0.10),
-            (f"{employee.get('first_name', '')} {employee.get('last_name', '')}", 0.20),
-            (employee.get('email', ''), 0.20),
-            (employee.get('phone', '') or employee.get('phone_number', ''), 0.15),
-            (employee.get('position_title', ''), 0.15)  # ✅ FIX: đổi từ 'role_name' sang 'position_title'
+            (f"{employee.get('first_name', '')} {employee.get('last_name', '')}", 0.15),
+            (employee.get('email', ''), 0.15),
+            (employee.get('phone', '') or employee.get('phone_number', ''), 0.10),
+            (employee.get('position_title', ''), 0.12),
+            (salary_formatted, 0.10),
+            (employee.get('status', '') or employee.get('employment_status', ''), 0.10)
         ]
         
         x_pos = 0
@@ -299,6 +306,10 @@ class TeamManagementTab(BaseTab):
     
     def view_employee(self, employee):
         """Xem chi tiết nhân viên"""
+        print(f"\n🔍 view_employee called with data:")
+        print(f"   Employee dict: {employee}")
+        print(f"   Keys: {list(employee.keys()) if employee else 'None'}\n")
+        
         EmployeeFormDialog(
             parent=self.container,
             employee_controller=self.employee_controller,

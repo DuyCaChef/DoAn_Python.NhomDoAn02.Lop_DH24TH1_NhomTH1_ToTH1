@@ -30,6 +30,12 @@ class EmployeeFormDialog(ctk.CTkToplevel):
         self.employee_data = employee_data or {}
         self.on_success = on_success
         
+        # DEBUG: Print employee data
+        print(f"\n{'='*60}")
+        print(f"📋 EmployeeFormDialog initialized with mode: {mode}")
+        print(f"📋 Employee data received: {self.employee_data}")
+        print(f"{'='*60}\n")
+        
         # Cấu hình cửa sổ
         self._setup_window()
         
@@ -99,7 +105,7 @@ class EmployeeFormDialog(ctk.CTkToplevel):
             self._on_close()
         
     def _create_ui(self):
-        """Tạo giao diện form nhập liệu KHÔNG dùng CTkScrollableFrame để tránh lỗi font."""
+        """Tạo giao diện form nhập liệu SỬ DỤNG CTkScrollableFrame"""
         # Kiểm tra window còn tồn tại
         try:
             if not self.winfo_exists():
@@ -110,62 +116,18 @@ class EmployeeFormDialog(ctk.CTkToplevel):
             return
             
         try:
-            # Container chính (Canvas + CTkFrame để tự làm scroll)
-            canvas = tk.Canvas(
+            # SỬ DỤNG CTkScrollableFrame - TỰ ĐỘNG XỬ LÝ SCROLL
+            self.form_container = ctk.CTkScrollableFrame(
                 self,
-                bg=self._apply_appearance_mode(ctk.ThemeManager.theme["CTkFrame"]["fg_color"]),
-                highlightthickness=0
+                fg_color="transparent"
             )
-            canvas.pack(side="left", fill="both", expand=True, padx=(20, 0), pady=20)
-
-            # Scrollbar
-            scrollbar = ctk.CTkScrollbar(self, command=canvas.yview)
-            scrollbar.pack(side="right", fill="y", padx=(0, 20), pady=20)
-            canvas.configure(yscrollcommand=scrollbar.set)
-
-            # Frame nội dung
-            self.form_container = ctk.CTkFrame(canvas, fg_color="transparent")
-            canvas_window = canvas.create_window((0, 0), window=self.form_container, anchor="nw")
-
-            # Cập nhật scroll region khi resize
-            def _on_frame_configure(event=None):
-                canvas.configure(scrollregion=canvas.bbox("all"))
-                # Đảm bảo form_container rộng bằng canvas
-                canvas_width = canvas.winfo_width()
-                if canvas_width > 1:
-                    canvas.itemconfig(canvas_window, width=canvas_width)
-
-            self.form_container.bind("<Configure>", _on_frame_configure)
-            canvas.bind("<Configure>", _on_frame_configure)
-
-            # Mouse wheel scrolling - Support cho Windows, Linux, Mac
-            def _on_mousewheel(event):
-                canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-            
-            def _on_mousewheel_linux(event):
-                if event.num == 4:
-                    canvas.yview_scroll(-1, "units")
-                elif event.num == 5:
-                    canvas.yview_scroll(1, "units")
-
-            # Windows/Mac
-            canvas.bind_all("<MouseWheel>", _on_mousewheel)
-            # Linux
-            canvas.bind_all("<Button-4>", _on_mousewheel_linux)
-            canvas.bind_all("<Button-5>", _on_mousewheel_linux)
-            
-            # Lưu canvas để có thể unbind sau này
-            self.canvas = canvas
+            self.form_container.pack(fill="both", expand=True, padx=20, pady=20)
 
             # Tạo các trường nhập liệu
             self._create_form_fields()
 
             # Nút hành động
             self._create_action_buttons()
-            
-            # Force update scroll region sau khi tạo xong UI
-            self.update_idletasks()
-            canvas.configure(scrollregion=canvas.bbox("all"))
 
         except Exception as e:
             print(f"ERROR in _create_ui: {e}")
@@ -194,15 +156,24 @@ class EmployeeFormDialog(ctk.CTkToplevel):
             
             default_value = self.employee_data.get(key, "")
             
+            # DEBUG: Print field values
+            print(f"  Field '{key}': '{default_value}'")
+            
             # CRITICAL: Truyền font tuple để tránh CTkFont() auto-creation
+            # IMPORTANT: Insert value BEFORE setting disabled state
             entry = ctk.CTkEntry(
                 self.form_container,
                 placeholder_text=placeholder,
-                state="disabled" if is_readonly else "normal",
-                font=("Arial", 12)  # <- Thêm dòng này!
+                font=("Arial", 12)
             )
+            
+            # Insert value first
             if default_value:
                 entry.insert(0, str(default_value))
+            
+            # Then set state to disabled if in view mode
+            if is_readonly:
+                entry.configure(state="disabled")
                 
             entry.pack(fill="x", pady=(0, 10), padx=5)
             # Lưu reference
@@ -259,19 +230,23 @@ class EmployeeFormDialog(ctk.CTkToplevel):
         self.department_combo = ctk.CTkComboBox(
             self.form_container,
             values=dept_names,
-            state="disabled" if is_readonly else "readonly",
             command=self._on_department_change,
             font=("Arial", 12),
             dropdown_font=("Arial", 12)  # CRITICAL: Fix DropdownMenu font error
         )
         # Set giá trị mặc định
-        current_dept = self.employee_data.get('department', '')
+        current_dept = self.employee_data.get('department_name', '') or self.employee_data.get('department', '')
         print(f"🏢 Current department from employee_data: '{current_dept}'")
         if current_dept:
             self.department_combo.set(current_dept)
         elif self.departments:
             self.department_combo.set(self.departments[0][1])
             print(f"✅ Set default department: {self.departments[0][1]}")
+        
+        # Set state after setting value
+        if is_readonly:
+            self.department_combo.configure(state="disabled")
+            
         self.department_combo.pack(fill="x", pady=(0, 10), padx=5)
         
         # 6. Chức vụ (Combobox) - Load dựa vào phòng ban đã chọn
@@ -288,15 +263,19 @@ class EmployeeFormDialog(ctk.CTkToplevel):
         self.position_combo = ctk.CTkComboBox(
             self.form_container,
             values=[name for _, name in self.positions],
-            state="disabled" if is_readonly else "readonly",
             font=("Arial", 12),
             dropdown_font=("Arial", 12)  # CRITICAL: Fix DropdownMenu font error
         )
-        current_pos = self.employee_data.get('position', '')
+        current_pos = self.employee_data.get('position_title', '') or self.employee_data.get('position', '')
         if current_pos:
             self.position_combo.set(current_pos)
         elif self.positions:
             self.position_combo.set(self.positions[0][1])
+        
+        # Set state after setting value
+        if is_readonly:
+            self.position_combo.configure(state="disabled")
+            
         self.position_combo.pack(fill="x", pady=(0, 10), padx=5)
         
         # 7. Trạng thái (Combobox)
@@ -312,12 +291,16 @@ class EmployeeFormDialog(ctk.CTkToplevel):
         self.status_combo = ctk.CTkComboBox(
             self.form_container,
             values=["Probation", "Active", "Resigned"],
-            state="disabled" if is_readonly else "readonly",
             font=("Arial", 12),
             dropdown_font=("Arial", 12)  # CRITICAL: Fix DropdownMenu font error
         )
-        current_status = self.employee_data.get('status', 'Active')
+        current_status = self.employee_data.get('employment_status', '') or self.employee_data.get('status', 'Active')
         self.status_combo.set(current_status)
+        
+        # Set state after setting value
+        if is_readonly:
+            self.status_combo.configure(state="disabled")
+            
         self.status_combo.pack(fill="x", pady=(0, 10), padx=5)
 
     def _load_departments(self):
@@ -334,13 +317,24 @@ class EmployeeFormDialog(ctk.CTkToplevel):
     def _load_positions(self):
         """Load danh sách chức vụ dựa vào phòng ban đang chọn"""
         try:
-            # Lấy department_id từ department đã chọn
+            # Lấy department_id từ department đã chọn hoặc từ employee_data
             selected_dept_name = self.department_combo.get()
+            
+            # If combo is empty, try to get from employee_data directly
+            if not selected_dept_name:
+                selected_dept_name = self.employee_data.get('department_name', '') or self.employee_data.get('department', '')
+            
             dept_id = None
+            
+            # Try to find dept_id from department name
             for did, dname in self.departments:
                 if dname == selected_dept_name:
                     dept_id = did
                     break
+            
+            # If still no dept_id, try to get it directly from employee_data
+            if not dept_id and self.employee_data.get('department_id'):
+                dept_id = self.employee_data.get('department_id')
             
             print(f"🔍 Loading positions for dept: '{selected_dept_name}' (ID: {dept_id})")
             
@@ -477,11 +471,8 @@ class EmployeeFormDialog(ctk.CTkToplevel):
     def _on_close(self):
         """Đóng dialog và giải phóng grab một cách an toàn"""
         try:
-            # Unbind mouse wheel events
-            if hasattr(self, 'canvas'):
-                self.unbind_all("<MouseWheel>")
-                self.unbind_all("<Button-4>")
-                self.unbind_all("<Button-5>")
+            # Giải phóng grab nếu có
+            self.grab_release()
         except:
             pass
             

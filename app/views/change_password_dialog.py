@@ -28,8 +28,8 @@ class ChangePasswordDialog(ctk.CTkToplevel):
         # Setup window
         self._setup_window()
         
-        # Delay UI creation để tránh font errors (500ms như employee_form_dialog)
-        self.after(500, self._delayed_init)
+        # Delay UI creation để tránh font errors
+        self.after(300, self._delayed_init)
     
     def _setup_window(self):
         """Cấu hình window properties"""
@@ -150,7 +150,7 @@ class ChangePasswordDialog(ctk.CTkToplevel):
     
     def _create_show_password_checkbox(self, parent):
         """Tạo checkbox hiện/ẩn mật khẩu"""
-        self.show_password_var = ctk.BooleanVar(master=self, value=False)
+        self.show_password_var = ctk.BooleanVar(value=False)
         
         show_password_cb = ctk.CTkCheckBox(
             parent,
